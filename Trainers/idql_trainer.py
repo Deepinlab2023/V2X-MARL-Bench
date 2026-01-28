@@ -63,10 +63,10 @@ class IDQLtrainerNS:
                 )
             )
 
-        # --- Epsilon schedule ---
+        # --- Epsilon schedule (linear decay over 80% of training) ---
+        epsi_start = 1.0
         epsi_final = 0.05
-        epsi_anneal_length = int(0.8 * num_training_iterations)
-        epsi_anneal_length_time = epsi_anneal_length * params.t_max
+        epsi_anneal_episodes = int(0.8 * num_training_iterations)
 
         episode_rewards = []
         test_rewards = []
@@ -81,15 +81,15 @@ class IDQLtrainerNS:
         train_data = params.train_data
 
         print("n_step_per_episode:", params.n_step_per_episode)
-        print("n_step_per_episode_communication:", getattr(params, "n_step_per_episode_communication", None))
-        print("t_max:", params.t_max, "t_max_control:", getattr(params, "t_max_control", None))
 
         for te in range(num_training_iterations):
             total_rewards = 0
-            done = False
 
-            # NFIG and SIG/POSIG all use single control interval in current setup
-            num_control_interval = 1
+            # --- Compute epsilon for this episode ---
+            if te < epsi_anneal_episodes:
+                epsi = epsi_start - te * (epsi_start - epsi_final) / (epsi_anneal_episodes - 1)
+            else:
+                epsi = epsi_final
 
             # Sample data based on task type
             if env_name == "NFIG" and params.loc is not None:
@@ -124,102 +124,86 @@ class IDQLtrainerNS:
                 plt.draw()
                 plt.pause(1)
 
+                # print(f"Episode {te + 1} | Test reward: {test_reward:.2f} | Epsilon: {epsi:.4f}")
                 print(f"Training reward at episode {te + 1}: {test_reward:.2f}")
 
-            for interval in range(1, num_control_interval + 1):
-                if interval > 1:
-                    env._update_positions_from_data(interval)
-                    env._renew_channels()
-                    env.renew_queue()
+            for t in range(params.n_step_per_episode):
+                if params.fast_fading_enabled:
+                    env._renew_fast_fading()
 
-                t_global = te * params.t_max + interval
+                ag_state_list = []
+                for _ag_idx in range(len(agent_list)):
+                    ag_state = env.get_state([0, 0], 0, t)
+                    ag_state_list.append(ag_state)
 
-                if t_global < epsi_anneal_length_time - 1:
-                    epsi = 1 - t_global * (1 - epsi_final) / (epsi_anneal_length_time - 1)
-                    epsi_new = 1 - ((te + 1) * params.t_max + interval) * (1 - epsi_final) / (
-                        epsi_anneal_length_time - 1
+                ag_action_list = []
+                joint_action = []
+                RRA_all_agents = np.zeros([len(agent_list), params.n_neighbor, 2], dtype="int32")
+
+                greedy_joint_action = []
+                for ag_idx in range(len(agent_list)):
+                    agent_list[ag_idx].eps_threshold = 0
+                    action = agent_list[ag_idx].select_action(ag_state_list[ag_idx], env)
+                    greedy_joint_action.append(action.item())
+                    RRA_all_agents[ag_idx, 0, 0], RRA_all_agents[ag_idx, 0, 1] = env.map_action_to_rra(
+                        action, agent_idx=ag_idx
                     )
-                else:
-                    epsi = epsi_final
-                    epsi_new = epsi
+                joint_action_over_te.append(greedy_joint_action)
 
-                for t in range(params.n_step_per_episode):
-                    if params.fast_fading_enabled:
-                        env._renew_fast_fading()
-
-                    ag_state_list = []
-                    for _ag_idx in range(len(agent_list)):
-                        ag_state = env.get_state([0, 0], 0, t)
-                        ag_state_list.append(ag_state)
-
-                    ag_action_list = []
-                    joint_action = []
-                    RRA_all_agents = np.zeros([len(agent_list), params.n_neighbor, 2], dtype="int32")
-
-                    greedy_joint_action = []
-                    for ag_idx in range(len(agent_list)):
-                        agent_list[ag_idx].eps_threshold = 0
-                        action = agent_list[ag_idx].select_action(ag_state_list[ag_idx], env)
-                        greedy_joint_action.append(action.item())
-                        RRA_all_agents[ag_idx, 0, 0], RRA_all_agents[ag_idx, 0, 1] = env.map_action_to_rra(
-                            action, agent_idx=ag_idx
-                        )
-                    joint_action_over_te.append(greedy_joint_action)
-
-                    for ag_idx in range(len(agent_list)):
-                        agent_list[ag_idx].eps_threshold = epsi
-                        action = agent_list[ag_idx].select_action(ag_state_list[ag_idx], env)
-                        ag_action_list.append(np.array([[action.item()]]))
-                        joint_action.append(action)
-                        RRA_all_agents[ag_idx, 0, 0], RRA_all_agents[ag_idx, 0, 1] = env.map_action_to_rra(
-                            action, agent_idx=ag_idx
-                        )
-
-                    explored_joint_actions.add(tuple(a.item() for a in joint_action))
-
-                    pre_empty_mask = (env.queue <= 0).squeeze(axis=1)
-                    actions = np.array([a.item() for a in ag_action_list])
-                    tx_mask = actions != (action_dim - 1)
-
-                    global_reward, individual_ag_rewards, V2I_throughput, done = env.step(
-                        RRA_all_agents.copy(), t, interval
+                for ag_idx in range(len(agent_list)):
+                    agent_list[ag_idx].eps_threshold = epsi
+                    action = agent_list[ag_idx].select_action(ag_state_list[ag_idx], env)
+                    ag_action_list.append(np.array([[action.item()]]))
+                    joint_action.append(action)
+                    RRA_all_agents[ag_idx, 0, 0], RRA_all_agents[ag_idx, 0, 1] = env.map_action_to_rra(
+                        action, agent_idx=ag_idx
                     )
 
-                    _post_empty_tx_mask = pre_empty_mask & tx_mask
+                explored_joint_actions.add(tuple(a.item() for a in joint_action))
 
-                    # For NFIG, add V2I throughput to global reward
-                    if params.task_type == "NFIG":
-                        global_reward = global_reward + sum(V2I_throughput)
+                pre_empty_mask = (env.queue <= 0).squeeze(axis=1)
+                actions = np.array([a.item() for a in ag_action_list])
+                tx_mask = actions != (action_dim - 1)
 
-                    total_rewards += global_reward
+                global_reward, individual_ag_rewards, V2I_throughput, done = env.step(
+                    RRA_all_agents.copy(), t, 1
+                )
 
-                    if global_reward > max_joint_action_reward:
-                        max_joint_action_reward = global_reward
-                    if global_reward < min_joint_action_reward:
-                        min_joint_action_reward = global_reward
+                _post_empty_tx_mask = pre_empty_mask & tx_mask
 
-                    ag_next_state_list = []
-                    for ag_idx in range(len(agent_list)):
-                        ag_next_state = env.get_state([ag_idx, 0], epsi_new, t + 1)
-                        ag_next_state_list.append(ag_next_state)
+                # For NFIG, add V2I throughput to global reward
+                if params.task_type == "NFIG":
+                    global_reward = global_reward + sum(V2I_throughput)
 
-                    for ag_idx in range(len(agent_list)):
-                        transition = (
-                            ag_state_list[ag_idx],
-                            ag_action_list[ag_idx],
-                            ag_next_state_list[ag_idx],
-                            done,
-                            global_reward,
-                        )
-                        agent_list[ag_idx].store_transition(*transition)
+                total_rewards += global_reward
 
-                    for ag_idx in range(len(agent_list)):
-                        agent_list[ag_idx].optimize_model()
+                if global_reward > max_joint_action_reward:
+                    max_joint_action_reward = global_reward
+                if global_reward < min_joint_action_reward:
+                    min_joint_action_reward = global_reward
 
-                    for ag_idx in range(len(agent_list)):
-                        agent_list[ag_idx].soft_update_target_net()
+                ag_next_state_list = []
+                for ag_idx in range(len(agent_list)):
+                    ag_next_state = env.get_state([ag_idx, 0], epsi, t + 1)
+                    ag_next_state_list.append(ag_next_state)
 
-                    episode_rewards.append(np.mean(total_rewards))
+                for ag_idx in range(len(agent_list)):
+                    transition = (
+                        ag_state_list[ag_idx],
+                        ag_action_list[ag_idx],
+                        ag_next_state_list[ag_idx],
+                        done,
+                        global_reward,
+                    )
+                    agent_list[ag_idx].store_transition(*transition)
+
+                for ag_idx in range(len(agent_list)):
+                    agent_list[ag_idx].optimize_model()
+
+                for ag_idx in range(len(agent_list)):
+                    agent_list[ag_idx].soft_update_target_net()
+
+            episode_rewards.append(np.mean(total_rewards))
 
         print(f"\nMax joint action reward seen during training: {float(max_joint_action_reward):.2f}")
         print(f"Min joint action reward seen during training: {float(min_joint_action_reward):.2f}")

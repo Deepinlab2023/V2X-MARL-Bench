@@ -118,23 +118,9 @@ class V2XParams:
             self.v2i_weight = 0.2
 
         # =====================================================================
-        # Sampling Configuration
-        # =====================================================================
-        self.sample_method = 'random'  # Options: 'random', 'consecutive', 'ordered'
-        self.sampling_size = 1
-
-        # =====================================================================
-        # Training Configuration
-        # =====================================================================
-        self.n_episodes = 50000
-        self.t_max = self.n_step_per_episode
-        self.n_episodes_test = 2
-        self.max_queue_length = 1
-        self.seed = 1
-
-        # =====================================================================
         # Reward Configuration
         # =====================================================================
+        self.max_queue_length = 1
         self.reward_lambda1 = 0.001
         self.reward_lambda2 = 0.1
         self.reward_lambda3 = 1
@@ -143,7 +129,7 @@ class V2XParams:
         # =====================================================================
         # Fast Fading
         # =====================================================================
-        self.fast_fading_enabled = True
+        self.fast_fading_enabled = False
         self.fast_fading_tag = "FF" if self.fast_fading_enabled else "NFF"
 
         # =====================================================================

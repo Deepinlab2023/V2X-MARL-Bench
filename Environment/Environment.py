@@ -120,7 +120,7 @@ class Environ:
         self.bandwidth_hz = int(params.bandwidth_per_sc_hz)
         self.max_queue_length = params.max_queue_length
         self.cam_size_bits = params.cam_size_bits
-        self.t_max = params.t_max
+        # self.t_max = params.t_max
 
         # ---------------------------------------------------------------------
         # Normalization bounds
