@@ -48,6 +48,22 @@ NOTE:
     When Plotting, there must be CSV files to get plots, only run the plotting
     script when done running required experiments
 '''
+def get_task_label(env_name: str, loc):
+    if env_name == "NFIG":
+        if loc is None:
+            raise ValueError("NFIG requires --loc (time index).")
+        return "NFIG"
+
+    if env_name == "SIG":
+        return "SIG SL" if loc is not None else "SIG ML"
+
+    if env_name == "POSIG":
+        if loc is not None:
+            raise ValueError("POSIG must be run with --loc omitted (ML setting).")
+        return "POSIG"
+
+    raise ValueError(f"Unknown env: {env_name}")
+
 
 def main():
     parser = argparse.ArgumentParser(description="Run different variations of algorithms and environments.")
@@ -99,12 +115,26 @@ def main():
             raise ValueError("Invalid argument")
 
 
-        # # Add this after line 78 in main.py (after env = Environ(env_params))
+        # # # Add this after line 78 in main.py (after env = Environ(env_params))
+        # print("\n" + "="*60)
+        # print("EXPERIMENT CONFIGURATION")
+        # print("="*60)
+        # loc_str = f"_SL_{args.loc}" if args.loc else "_ML"
+        # print(f"Task:           {env_params.task_type}{loc_str}")
+        # print(f"Algorithm:      {args.algo}")
+        # print(f"Num Agents:     {env_params.n_agent}")
+        # print(f"Train Data:     {getattr(env_params, 'train_data_path', 'N/A')}")
+        # print(f"Test Data:      {getattr(env_params, 'test_data_path', 'N/A')}")
+        # print(f"Test Episodes:  {len(test_data_list)}")
+        # print(f"Time Horizon:   {env_params.n_step_per_episode}")
+        # print(f"Fast Fading:    {env_params.fast_fading_tag}")
+        # print("="*60 + "\n")
+        task_label = get_task_label(args.env, args.loc)
+
         print("\n" + "="*60)
         print("EXPERIMENT CONFIGURATION")
         print("="*60)
-        loc_str = f"_SL_{args.loc}" if args.loc else "_ML"
-        print(f"Task:           {env_params.task_type}{loc_str}")
+        print(f"Task:           {task_label}")
         print(f"Algorithm:      {args.algo}")
         print(f"Num Agents:     {env_params.n_agent}")
         print(f"Train Data:     {getattr(env_params, 'train_data_path', 'N/A')}")
@@ -113,6 +143,8 @@ def main():
         print(f"Steps/Episode:  {env_params.n_step_per_episode}")
         print(f"Fast Fading:    {env_params.fast_fading_tag}")
         print("="*60 + "\n")
+
+        
 
         # # NOTE: renamed per your new convention (veh_data -> train_data)
         # env_params.train_data = sampled_data

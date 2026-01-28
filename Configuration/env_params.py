@@ -24,6 +24,11 @@ DECORRELATION_DISTANCE_M = 10
 SHADOW_STD_DB = 3
 NOISE_POWER_DBM = -114
 
+# Antenna heights (m)
+H_TX_M = 1.5  # V2V transmitter antenna height
+H_RX_M = 1.5  # V2V receiver antenna height
+BS_ANTENNA_HEIGHT_M = 25  # Base station antenna height
+
 # Power levels
 V2V_POWER_LEVELS_DBM = [23, 15, 5]
 V2I_POWER_DBM = 23
@@ -34,10 +39,35 @@ CAM_SIZE_BITS = 8 * 1060 * 6
 # Bandwidth
 BANDWIDTH_PER_SC_HZ = 1_000_000  # 1 MHz
 
+# Timing
+TIME_FAST_S = 0.001  # Fast fading update interval (1 ms)
+
 # Normalization factors
 NORM_V2V_CHANNEL_FACTOR = 120
 NORM_V2V_INTERFERENCE_FACTOR = 80
 
+# =============================================================================
+# Topology Configuration
+# =============================================================================
+
+BS_POSITION = [0, -35]  # Base station position [x, y] in meters
+
+# =============================================================================
+# Normalization Bounds (empirically determined)
+# =============================================================================
+
+PATHLOSS_BOUNDS = {
+    "v2v_link": (44.5, 119.3),
+    "v2v_interference": (44.5, 125.6),
+    "veh_to_bs": (76.9, 128.1),
+}
+INR_NORM_BOUNDS = (20.0, 85.0)  # INR normalization range in dB
+
+# =============================================================================
+# State Encoding Configuration
+# =============================================================================
+
+TIMESTEP_ENCODING_TYPE = 'one-hot'  # Options: 'one-hot', 'normalized'
 
 # =============================================================================
 # Data File Paths
@@ -86,7 +116,6 @@ class V2XParams:
         self.n_sc = 4
         self.n_veh_per_platoon = [2] * self.n_agent
         self.n_veh = sum(self.n_veh_per_platoon)
-        self.n_neighbor = 1
 
         # =====================================================================
         # Physical Parameters (from constants)
@@ -105,6 +134,21 @@ class V2XParams:
         self.norm_v2v_channel_factor = NORM_V2V_CHANNEL_FACTOR
         self.norm_v2v_interference_factor = NORM_V2V_INTERFERENCE_FACTOR
 
+        # Channel model parameters
+        self.carrier_freq_ghz = CARRIER_FREQUENCY_GHZ
+        self.h_tx_m = H_TX_M
+        self.h_rx_m = H_RX_M
+        self.bs_antenna_height_m = BS_ANTENNA_HEIGHT_M
+        self.bs_position = BS_POSITION
+        self.time_fast_s = TIME_FAST_S
+
+        # Normalization bounds
+        self.pathloss_bounds = PATHLOSS_BOUNDS
+        self.inr_norm_bounds = INR_NORM_BOUNDS
+
+        # State encoding
+        self.timestep_encoding_type = TIMESTEP_ENCODING_TYPE
+
         # =====================================================================
         # Task-Specific Configuration
         # =====================================================================
@@ -121,9 +165,6 @@ class V2XParams:
         # Reward Configuration
         # =====================================================================
         self.max_queue_length = 1
-        self.reward_lambda1 = 0.001
-        self.reward_lambda2 = 0.1
-        self.reward_lambda3 = 1
         self.reward_queue_empty = 0.5
 
         # =====================================================================

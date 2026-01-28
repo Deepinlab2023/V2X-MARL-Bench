@@ -31,11 +31,12 @@ class IDQLtester:
                 # --- Get states (POSIG uses per-agent observation) ---
                 ag_state_list = []
                 for ag_idx in range(len(agent_list)):
-                    ag_state = env.get_state([ag_idx, 0], 0, t)
+                    # ag_state = env.get_state([ag_idx, 0], 0, t)
+                    ag_state = env.get_state(ag_idx, t)
                     ag_state_list.append(ag_state)
 
                 joint_action = []
-                RRA_all_agents = np.zeros([len(agent_list), params.n_neighbor, 2], dtype="int32")
+                RRA_all_agents = np.zeros([len(agent_list), 1, 2], dtype="int32")
 
                 for ag_idx in range(len(agent_list)):
                     agent_list[ag_idx].eps_threshold = 0
@@ -45,13 +46,16 @@ class IDQLtester:
                         action, agent_idx=ag_idx
                     )
 
-                global_reward, _, V2I_throughput, _ = env.step(RRA_all_agents.copy(), t, 1)
+                # global_reward, _, V2I_throughput, _ = env.step(RRA_all_agents.copy(), t, 1)
+                global_reward, done = env.step(RRA_all_agents.copy(), t)
 
-                # For NFIG, add V2I throughput to reward
-                if params.task_type == "NFIG":
-                    total_rewards += global_reward + sum(V2I_throughput)
-                else:
-                    total_rewards += global_reward[0, 0]
+
+                # # For NFIG, add V2I throughput to reward
+                # if params.task_type == "NFIG":
+                #     total_rewards += global_reward + sum(V2I_throughput)
+                # else:
+                #     total_rewards += global_reward[0, 0]
+                total_rewards += global_reward[0, 0]
 
             test_rewards[i] += total_rewards
 

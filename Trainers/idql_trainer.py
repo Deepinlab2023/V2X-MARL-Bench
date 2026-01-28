@@ -139,18 +139,28 @@ class IDQLtrainerNS:
                 # --- Get states (POSIG uses per-agent observation) ---
                 ag_state_list = []
                 for ag_idx in range(len(agent_list)):
-                    ag_state = env.get_state([ag_idx, 0], 0, t)
+                    # ag_state = env.get_state([ag_idx, 0], 0, t)
+                    ag_state = env.get_state(ag_idx, t)
                     ag_state_list.append(ag_state)
 
                 ag_action_list = []
                 joint_action = []
-                RRA_all_agents = np.zeros([len(agent_list), params.n_neighbor, 2], dtype="int32")
+
+                # RRA_all_agents shape: [n_agents, 1, 2]
+                #   - Axis 0: agent index
+                #   - Axis 1: V2V link index (always 1 link per agent in current design)
+                #   - Axis 2: [subchannel_index, power_level_index]
+                RRA_all_agents = np.zeros([len(agent_list), 1, 2], dtype="int32")
 
                 greedy_joint_action = []
                 for ag_idx in range(len(agent_list)):
                     agent_list[ag_idx].eps_threshold = 0
                     action = agent_list[ag_idx].select_action(ag_state_list[ag_idx], env)
                     greedy_joint_action.append(action.item())
+
+                    # Map discrete action to (subchannel, power_level) tuple
+                    # RRA_all_agents[ag_idx, 0, 0] = subchannel index (or -1 for no transmission)
+                    # RRA_all_agents[ag_idx, 0, 1] = power level index (or -1 for no transmission)
                     RRA_all_agents[ag_idx, 0, 0], RRA_all_agents[ag_idx, 0, 1] = env.map_action_to_rra(
                         action, agent_idx=ag_idx
                     )
@@ -171,16 +181,18 @@ class IDQLtrainerNS:
                 actions = np.array([a.item() for a in ag_action_list])
                 tx_mask = actions != (action_dim - 1)
 
-                global_reward, individual_ag_rewards, V2I_throughput, done = env.step(
-                    RRA_all_agents.copy(), t, 1
-                )
+                # global_reward, individual_ag_rewards, V2I_throughput, done = env.step(
+                #     RRA_all_agents.copy(), t, 1
+                # )
+                global_reward, done = env.step(RRA_all_agents.copy(), t)
 
                 _post_empty_tx_mask = pre_empty_mask & tx_mask
 
                 # For NFIG, add V2I throughput to global reward
-                if params.task_type == "NFIG":
-                    global_reward = global_reward + sum(V2I_throughput)
+                # if params.task_type == "NFIG":
+                #     global_reward = global_reward + sum(V2I_throughput)
 
+                # total_rewards += global_reward
                 total_rewards += global_reward
 
                 if global_reward > max_joint_action_reward:
@@ -191,7 +203,8 @@ class IDQLtrainerNS:
                 # --- Get next states (POSIG uses per-agent observation) ---
                 ag_next_state_list = []
                 for ag_idx in range(len(agent_list)):
-                    ag_next_state = env.get_state([ag_idx, 0], epsi, t + 1)
+                    # ag_next_state = env.get_state([ag_idx, 0], epsi, t + 1)
+                    ag_next_state = env.get_state(ag_idx, t + 1)
                     ag_next_state_list.append(ag_next_state)
 
                 for ag_idx in range(len(agent_list)):
