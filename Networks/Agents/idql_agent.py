@@ -25,82 +25,6 @@ class ReplayMemory(object):
         return len(self.memory)
 
 
-
-class QNetworkWithTower(nn.Module):
-    """
-    Feature Tower Architecture for Queue-Aware DQN
-    
-    Separates queue processing into dedicated tower to guarantee
-    strong gradient flow and prevent feature dilution.
-    """
-    def __init__(self, n_observations, n_actions, queue_index):
-        super(QNetworkWithTower, self).__init__()
-        self.queue_index = queue_index
-        self.n_observations = n_observations
-        
-        # Queue feature tower (dedicated processing)
-        self.queue_tower = nn.Sequential(
-            nn.Linear(1, 32),
-            nn.LayerNorm(32),
-            nn.ReLU(),
-            nn.Linear(32, 32),
-            nn.LayerNorm(32),
-            nn.ReLU()
-        )
-        
-        # Main network for other features
-        self.main_network = nn.Sequential(
-            nn.Linear(n_observations - 1, 128),
-            nn.LayerNorm(128),
-            nn.ReLU(),
-            nn.Linear(128, 128),
-            nn.LayerNorm(128),
-            nn.ReLU()
-        )
-        
-        # Fusion head (concatenate and produce Q-values)
-        self.fusion_head = nn.Sequential(
-            nn.Linear(128 + 32, 128),
-            nn.LayerNorm(128),
-            nn.ReLU(),
-            nn.Linear(128, n_actions)
-        )
-    
-    def forward(self, x):
-        """
-        Forward pass with feature tower architecture.
-        
-        Args:
-            x: State tensor of shape (batch_size, n_observations)
-        
-        Returns:
-            Q-values of shape (batch_size, n_actions)
-        """
-        # Split input: queue vs other features
-        queue_feature = x[:, self.queue_index:self.queue_index+1]  # Shape: (batch, 1)
-        
-        # Concatenate features before and after queue index
-        if self.queue_index == 0:
-            other_features = x[:, 1:]
-        elif self.queue_index == self.n_observations - 1:
-            other_features = x[:, :-1]
-        else:
-            other_features = th.cat([
-                x[:, :self.queue_index],
-                x[:, self.queue_index+1:]
-            ], dim=1)  # Shape: (batch, n_observations-1)
-        
-        # Process through separate towers
-        h_queue = self.queue_tower(queue_feature)      # (batch, 32)
-        h_main = self.main_network(other_features)     # (batch, 128)
-        
-        # Fuse and produce Q-values
-        h_combined = th.cat([h_queue, h_main], dim=1)  # (batch, 160)
-        q_values = self.fusion_head(h_combined)        # (batch, n_actions)
-        
-        return q_values
-
-
 class QNetwork(nn.Module):
     """
     Original simple Q-network architecture (kept for backward compatibility)
@@ -124,7 +48,7 @@ class QNetwork(nn.Module):
 class DQNAgent:
     def __init__(self, ag_idx, num_agents, state_dim, action_dim, is_hysteretic_q, 
                  memory_capacity=10000, batch_size=64, gamma=0.9, tau=0.005, 
-                 force_nt_when_empty=False, use_feature_tower=False):
+                 force_nt_when_empty=False):
         """
         DQN Agent with optional Feature Tower architecture.
         
@@ -150,7 +74,6 @@ class DQNAgent:
         
         # NT constraint configuration
         self.force_nt_when_empty = force_nt_when_empty
-        self.use_feature_tower = use_feature_tower
         
         # Queue position in state vector: last num_agents elements are queues
         self.queue_index = state_dim - num_agents + ag_idx
@@ -165,16 +88,10 @@ class DQNAgent:
         self.lr = 1e-5
         self.device = th.device("cuda" if th.cuda.is_available() else "cpu")
 
-        # Initialize Q-networks with appropriate architecture
-        if use_feature_tower:
-            self.q_net = QNetworkWithTower(state_dim, action_dim, self.queue_index).to(self.device)
-            self.target_net = QNetworkWithTower(state_dim, action_dim, self.queue_index).to(self.device)
-        else:
-            self.q_net = QNetwork(state_dim, action_dim).to(self.device)
-            self.target_net = QNetwork(state_dim, action_dim).to(self.device)
-        
+
+        self.q_net = QNetwork(state_dim, action_dim).to(self.device)
+        self.target_net = QNetwork(state_dim, action_dim).to(self.device)
         self.target_net.load_state_dict(self.q_net.state_dict())
-        
         self.optimizer = th.optim.Adam(self.q_net.parameters(), lr=self.lr)
 
     def convert_to_tensor(self, data):

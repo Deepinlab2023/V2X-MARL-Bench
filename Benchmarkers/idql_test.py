@@ -67,6 +67,6 @@ class IDQLtester:
 
             test_rewards[i] += total_rewards
 
-        print(test_rewards)
+
         average_reward = np.mean(test_rewards)
         return average_reward, joint_action

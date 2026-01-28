@@ -1,23 +1,14 @@
 import numpy as np
 import torch as th
-import csv
 import matplotlib.pyplot as plt
-import copy
 import platform
 import os
-import random
 
 from Networks.Agents.idql_agent import DQNAgent
 from Benchmarkers.idql_test import *
 from Environment.environment_utility import *
 
 device = th.device("cuda:0" if th.cuda.is_available() else "cpu")
-
-# --- Checkpoint path config ---
-_THIS_DIR = os.path.dirname(__file__)
-_REPO_ROOT = os.path.abspath(os.path.join(_THIS_DIR, "..", ".."))
-_MODELS_DIR = os.path.join(_REPO_ROOT, "models")
-os.makedirs(_MODELS_DIR, exist_ok=True)
 
 # Linux deterministic fixes
 if platform.system() == "Linux":
@@ -26,15 +17,6 @@ if platform.system() == "Linux":
     th.use_deterministic_algorithms(True)
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'
-
-
-def q_state_dict(agent):
-    """Extract Q-network state dict from agent."""
-    for attr in ("q_net", "qnetwork", "q_network", "net", "model"):
-        mod = getattr(agent, attr, None)
-        if mod is not None and hasattr(mod, "state_dict"):
-            return mod.state_dict()
-    return None
 
 
 class IDQLtrainerPS:
@@ -68,28 +50,6 @@ class IDQLtrainerNS:
         batch_size,
         is_hysteretic_q,
     ):
-        # --- CSV log ---
-        if env_name == "NFIG":
-            csv_file = open(f"IDQLNS_trial_{trial_run}_NFIG_{int(params.loc)}.csv", "a", newline="")
-        elif env_name == "SIG":
-            if params.loc is None:
-                csv_file = open(f"IDQLNS_trial_{trial_run}_SIG_ML_{params.fast_fading_tag}.csv", "a", newline="")
-            else:
-                csv_file = open(
-                    f"IDQLNS_trial_{trial_run}_SIG_{params.fast_fading_tag}_{params.loc}.csv", "a", newline=""
-                )
-        elif env_name == "POSIG":
-            if params.loc is None:
-                csv_file = open(f"IDQLNS_trial_{trial_run}_POSIG_ML_{params.fast_fading_tag}.csv", "a", newline="")
-            else:
-                csv_file = open(
-                    f"IDQLNS_trial_{trial_run}_POSIG_{params.fast_fading_tag}_{params.loc}.csv", "a", newline=""
-                )
-        else:
-            raise ValueError(f"Unsupported env_name: {env_name}")
-
-        csv_writer = csv.writer(csv_file)
-
         # --- Agents ---
         agent_list = []
         for veh_idx in range(num_agents):
@@ -120,20 +80,9 @@ class IDQLtrainerNS:
 
         train_data = params.train_data
 
-
-        # np.random.seed(7)
-        eval_data_list = None
-        # if env_name == "SIG" and params.loc is None:
-        #     for _ in range(9):
-        #         eval_sample = random_sample(1, train_data)
-        #         eval_data_list.append(eval_sample)
-        # else:
-        #     eval_data_list = None
-
         print("n_step_per_episode:", params.n_step_per_episode)
         print("n_step_per_episode_communication:", getattr(params, "n_step_per_episode_communication", None))
         print("t_max:", params.t_max, "t_max_control:", getattr(params, "t_max_control", None))
-
 
         for te in range(num_training_iterations):
             total_rewards = 0
@@ -155,9 +104,6 @@ class IDQLtrainerNS:
             env.train_data = sampled_data
             env.new_random_game()
 
-            # print(te)
-            # print(sampled_data)
-
             if te % test_interval == 0:
                 test_reward, joint_action = IDQLtester.test_IDQL_NoSharing(
                     agent_list, params, num_test_episodes, num_agents, test_data_list, te
@@ -166,13 +112,6 @@ class IDQLtrainerNS:
                     prev_joint_action = joint_action
 
                 test_rewards.append(test_reward)
-                csv_writer.writerow([test_reward])
-                csv_file.flush()
-
-                # if eval_data_list is not None:
-                #     eval_reward, _ = IDQLtester.test_IDQL_NoSharing(
-                #         agent_list, params, len(eval_data_list), num_agents, eval_data_list, te
-                #     )
 
                 plt.figure(1)
                 plt.clf()
@@ -185,20 +124,7 @@ class IDQLtrainerNS:
                 plt.draw()
                 plt.pause(1)
 
-                if eval_data_list is not None:
-                    print(f"Training reward at episode {te + 1}: {test_reward:.2f}, Eval={eval_reward:.2f}")
-                else:
-                    print(f"Training reward at episode {te + 1}: {test_reward:.2f}")
-
-                ckpt = {
-                    "episode": int(te + 1),
-                    "env_name": env_name,
-                    "trial_run": int(trial_run),
-                    "test_reward": float(test_reward),
-                    "q_states": [q_state_dict(a) for a in agent_list],
-                }
-                checkpoint_path = os.path.join(_MODELS_DIR, f"IDQLNS_{env_name}_trial{trial_run}_ep{te+1}.pt")
-                th.save(ckpt, checkpoint_path)
+                print(f"Training reward at episode {te + 1}: {test_reward:.2f}")
 
             for interval in range(1, num_control_interval + 1):
                 if interval > 1:
@@ -216,8 +142,6 @@ class IDQLtrainerNS:
                 else:
                     epsi = epsi_final
                     epsi_new = epsi
-
-                # print("te: ", te, "epsi: ", epsi)
 
                 for t in range(params.n_step_per_episode):
                     if params.fast_fading_enabled:
@@ -301,5 +225,4 @@ class IDQLtrainerNS:
         print(f"Min joint action reward seen during training: {float(min_joint_action_reward):.2f}")
         print(f"Unique joint actions explored during training: {len(explored_joint_actions)}")
 
-        csv_file.close()
         return episode_rewards, test_rewards

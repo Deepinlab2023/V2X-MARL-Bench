@@ -143,7 +143,7 @@ class V2XParams:
         # =====================================================================
         # Fast Fading
         # =====================================================================
-        self.fast_fading_enabled = False
+        self.fast_fading_enabled = True
         self.fast_fading_tag = "FF" if self.fast_fading_enabled else "NFF"
 
         # =====================================================================
