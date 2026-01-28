@@ -7,11 +7,9 @@ import platform
 import os
 import random
 
-from Networks.Agents.FF.idql_agent import DQNAgent
-from Helpers.FullyObservable.idql_helper import *
-from Benchmarkers.FullyObservable.idql_test import *
-from Envs.UtilityCommunication.veh_position_helper import *
-from Helpers.env_helper import EnvironHelper
+from Networks.Agents.idql_agent import DQNAgent
+from Benchmarkers.idql_test import *
+from Environment.environment_utility import *
 
 device = th.device("cuda:0" if th.cuda.is_available() else "cpu")
 

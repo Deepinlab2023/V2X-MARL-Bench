@@ -1,7 +1,6 @@
 from Configuration.idql_params import IDQLparameters
-from Trainers.FullyObservable.idql_trainer import IDQLtrainerPS, IDQLtrainerNS
-from Trainers.PartialObservable.idql_trainer_po import IDQLtrainerPO
-from Envs.UtilityCommunication.veh_position_helper import *
+from Trainers.idql_trainer import IDQLtrainerPS, IDQLtrainerNS
+from Environment.environment_utility import *
 
 
 class IDQLrunner:

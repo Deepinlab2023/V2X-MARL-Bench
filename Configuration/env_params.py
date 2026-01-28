@@ -5,7 +5,7 @@ Contains configuration for C-V2X resource allocation experiments.
 Physical parameters follow 3GPP TR 36.885 and ETSI standards.
 """
 
-from Envs.UtilityCommunication.veh_position_helper import load_veh_pos
+from Environment.environment_utility import load_veh_pos
 
 
 # =============================================================================
@@ -44,24 +44,23 @@ NORM_V2V_INTERFERENCE_FACTOR = 80
 # =============================================================================
 
 DATA_PATHS = {
-    ("NFIG", 4): './Envs/SUMOData/journal/NFIG_4ag.csv',
-    ("NFIG", 8): './Envs/SUMOData/journal/NFIG_8ag.csv',
-    ("NFIG", 16): './Envs/SUMOData/journal/NFIG_16ag.csv',
-    ("SIG_SL", 4): './Envs/SUMOData/journal/NFIG_4ag.csv',
-    ("SIG_SL", 8): './Envs/SUMOData/journal/NFIG_8ag.csv',
-    ("SIG_SL", 16): './Envs/SUMOData/journal/NFIG_16ag.csv',
-    ("SIG_ML", 4): './Envs/SUMOData/journal/SIG_ML_4ag_15k.csv',
-    ("SIG_ML", 8): './Envs/SUMOData/journal/SIG_ML_8ag_60k.csv',
-    ("SIG_ML", 16): './Envs/SUMOData/journal/SIG_ML_16ag_60k.csv',
-    ("POSIG", 4): './Envs/SUMOData/journal/SIG_ML_4ag_15k.csv',
-    ("POSIG", 8): './Envs/SUMOData/journal/SIG_ML_8ag_60k.csv',
-    ("POSIG", 16): './Envs/SUMOData/journal/SIG_ML_16ag_60k.csv',
+    ("NFIG", 4): './Environment/SUMOData/NFIG_4ag.csv',
+    ("NFIG", 8): './Environment/SUMOData/NFIG_8ag.csv',
+    ("NFIG", 16): './Environment/SUMOData/NFIG_16ag.csv',
+    ("SIG_SL", 4): './Environment/SUMOData/NFIG_4ag.csv',
+    ("SIG_SL", 8): './Environment/SUMOData/NFIG_8ag.csv',
+    ("SIG_SL", 16): './Environment/SUMOData/NFIG_16ag.csv',
+    ("SIG_ML", 4): './Environment/SUMOData/SIG_ML_4ag_15k.csv',
+    ("SIG_ML", 8): './Environment/SUMOData/SIG_ML_8ag_60k.csv',
+    ("SIG_ML", 16): './Environment/SUMOData/SIG_ML_16ag_60k.csv',
+    ("POSIG", 4): './Environment/SUMOData/SIG_ML_4ag_15k.csv',
+    ("POSIG", 8): './Environment/SUMOData/SIG_ML_8ag_60k.csv',
+    ("POSIG", 16): './Environment/SUMOData/SIG_ML_16ag_60k.csv',
 }
-
 TEST_DATA_PATHS = {
-    4: './Envs/SUMOData/journal/NFIG_4ag.csv',
-    8: './Envs/SUMOData/journal/NFIG_8ag.csv',
-    16: './Envs/SUMOData/journal/NFIG_16ag.csv',
+    4: './Environment/SUMOData/NFIG_4ag.csv',
+    8: './Environment/SUMOData/NFIG_8ag.csv',
+    16: './Environment/SUMOData/NFIG_16ag.csv',
 }
 
 

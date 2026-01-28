@@ -2,7 +2,7 @@ import numpy as np
 import torch as th
 import platform
 
-from Envs.Environment import Environ
+from Environment.environment import Environ
 
 device = th.device("cuda" if th.cuda.is_available() else "cpu")
 
