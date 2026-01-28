@@ -42,7 +42,7 @@ class IDQLrunner:
         if self.env_name == 'POSIG':
             for trial in range(params.num_trials):
                 print(f"Trial: {trial + 1}")
-                train_rewards, test_rewards = IDQLtrainerPO.train_IDQL_NoSharing(trial, **train_params)
+                train_rewards, test_rewards = IDQLtrainerNS.train_IDQL_NoSharing(trial, **train_params)
                 test_rewards_n_trails.append(test_rewards)
         else:
             for trial in range(params.num_trials):

@@ -50,6 +50,12 @@ class IDQLtrainerNS:
         batch_size,
         is_hysteretic_q,
     ):
+        # --- Determine input dimension based on task type ---
+        if env_name == "POSIG":
+            input_dim = observation_dim
+        else:
+            input_dim = state_dim
+
         # --- Agents ---
         agent_list = []
         for veh_idx in range(num_agents):
@@ -57,7 +63,7 @@ class IDQLtrainerNS:
                 DQNAgent(
                     ag_idx=veh_idx,
                     num_agents=num_agents,
-                    state_dim=state_dim,
+                    state_dim=input_dim,
                     action_dim=action_dim,
                     is_hysteretic_q=is_hysteretic_q,
                 )
@@ -124,16 +130,16 @@ class IDQLtrainerNS:
                 plt.draw()
                 plt.pause(1)
 
-                # print(f"Episode {te + 1} | Test reward: {test_reward:.2f} | Epsilon: {epsi:.4f}")
                 print(f"Training reward at episode {te + 1}: {test_reward:.2f}")
 
             for t in range(params.n_step_per_episode):
                 if params.fast_fading_enabled:
                     env._renew_fast_fading()
 
+                # --- Get states (POSIG uses per-agent observation) ---
                 ag_state_list = []
-                for _ag_idx in range(len(agent_list)):
-                    ag_state = env.get_state([0, 0], 0, t)
+                for ag_idx in range(len(agent_list)):
+                    ag_state = env.get_state([ag_idx, 0], 0, t)
                     ag_state_list.append(ag_state)
 
                 ag_action_list = []
@@ -182,6 +188,7 @@ class IDQLtrainerNS:
                 if global_reward < min_joint_action_reward:
                     min_joint_action_reward = global_reward
 
+                # --- Get next states (POSIG uses per-agent observation) ---
                 ag_next_state_list = []
                 for ag_idx in range(len(agent_list)):
                     ag_next_state = env.get_state([ag_idx, 0], epsi, t + 1)

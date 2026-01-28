@@ -28,9 +28,10 @@ class IDQLtester:
                 if params.fast_fading_enabled:
                     env._renew_fast_fading()
 
+                # --- Get states (POSIG uses per-agent observation) ---
                 ag_state_list = []
                 for ag_idx in range(len(agent_list)):
-                    ag_state = env.get_state([0, 0], 0, t)
+                    ag_state = env.get_state([ag_idx, 0], 0, t)
                     ag_state_list.append(ag_state)
 
                 joint_action = []
