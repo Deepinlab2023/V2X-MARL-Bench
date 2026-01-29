@@ -21,10 +21,8 @@ if platform.system() == "Linux":
 
 class IDQLtrainerPS:
     @staticmethod
-    def train_IDQL_ParameterSharing(trial_run, env, env_name, params, test_data_list,
-                                     state_dim, observation_dim, action_dim, num_agents, gamma, actor_hidden_dim,
-                                     critic_hidden_dim, value_dim, alpha, beta, tau, test_interval,
-                                     num_training_iterations, num_test_episodes, batch_size):
+    def train_IDQL_ParameterSharing(trial_run, env, env_name, env_params, test_data_list,
+                                     is_hysteretic_q, algo_params):
         raise ValueError("IDQL PS not finished yet")
 
 
@@ -34,45 +32,43 @@ class IDQLtrainerNS:
         trial_run,
         env,
         env_name,
-        params,
+        env_params,
         test_data_list,
-        state_dim,
-        observation_dim,
-        action_dim,
-        num_agents,
-        gamma,
-        hidden_dim,
-        value_dim,
-        tau,
-        test_interval,
-        num_training_iterations,
-        num_test_episodes,
-        batch_size,
         is_hysteretic_q,
+        algo_params,
     ):
         # --- Determine input dimension based on task type ---
         if env_name == "POSIG":
-            input_dim = observation_dim
+            input_dim = env.local_state_dim
         else:
-            input_dim = state_dim
+            input_dim = env.state_dim
 
         # --- Agents ---
         agent_list = []
-        for veh_idx in range(num_agents):
+        for veh_idx in range(env.n_agent):
             agent_list.append(
                 DQNAgent(
                     ag_idx=veh_idx,
-                    num_agents=num_agents,
+                    num_agents=env.n_agent,
                     state_dim=input_dim,
-                    action_dim=action_dim,
+                    action_dim=env.n_actions,
                     is_hysteretic_q=is_hysteretic_q,
+                    memory_capacity=algo_params.memory_capacity,
+                    batch_size=algo_params.batch_size,
+                    gamma=algo_params.gamma,
+                    tau=algo_params.tau,
+                    lr=algo_params.lr,
+                    hidden_dim=algo_params.hidden_dim,
+                    hysteretic_high_lr=algo_params.hysteretic_high_lr,
+                    hysteretic_low_lr=algo_params.hysteretic_low_lr,
+                    force_nt_when_empty=algo_params.force_nt_when_empty,
                 )
             )
 
         # --- Epsilon schedule (linear decay over 80% of training) ---
         epsi_start = 1.0
         epsi_final = 0.05
-        epsi_anneal_episodes = int(0.8 * num_training_iterations)
+        epsi_anneal_episodes = int(0.8 * algo_params.training_episodes)
 
         episode_rewards = []
         test_rewards = []
@@ -84,11 +80,11 @@ class IDQLtrainerNS:
         min_joint_action_reward = float("inf")
         explored_joint_actions = set()
 
-        train_data = params.train_data
+        train_data = env_params.train_data
 
-        print("n_step_per_episode:", params.n_step_per_episode)
+        print("n_step_per_episode:", env_params.n_step_per_episode)
 
-        for te in range(num_training_iterations):
+        for te in range(algo_params.training_episodes):
             total_rewards = 0
 
             # --- Compute epsilon for this episode ---
@@ -98,21 +94,21 @@ class IDQLtrainerNS:
                 epsi = epsi_final
 
             # Sample data based on task type
-            if env_name == "NFIG" and params.loc is not None:
-                sampled_data = sample_veh_position_from_timestep(train_data, params.loc)
-            elif env_name in ["SIG", "POSIG"] and params.loc is None:
+            if env_name == "NFIG" and env_params.loc is not None:
+                sampled_data = sample_veh_position_from_timestep(train_data, env_params.loc)
+            elif env_name in ["SIG", "POSIG"] and env_params.loc is None:
                 sampled_data = random_sample(1, train_data)
-            elif env_name in ["SIG", "POSIG"] and params.loc is not None:
-                sampled_data = sample_veh_position_from_timestep(train_data, params.loc)
+            elif env_name in ["SIG", "POSIG"] and env_params.loc is not None:
+                sampled_data = sample_veh_position_from_timestep(train_data, env_params.loc)
             else:
-                raise ValueError(f"Invalid env setup: env_name={env_name}, loc={params.loc}")
+                raise ValueError(f"Invalid env setup: env_name={env_name}, loc={env_params.loc}")
 
             env.train_data = sampled_data
             env.new_random_game()
 
-            if te % test_interval == 0:
+            if te % algo_params.test_interval == 0:
                 test_reward, joint_action = IDQLtester.test_IDQL_NoSharing(
-                    agent_list, params, num_test_episodes, num_agents, test_data_list, te
+                    agent_list, env_params, algo_params.num_test_episodes, env.n_agent, test_data_list, te
                 )
                 if prev_joint_action == []:
                     prev_joint_action = joint_action
@@ -132,14 +128,13 @@ class IDQLtrainerNS:
 
                 print(f"Training reward at episode {te + 1}: {test_reward:.2f}")
 
-            for t in range(params.n_step_per_episode):
-                if params.fast_fading_enabled:
+            for t in range(env_params.n_step_per_episode):
+                if env_params.fast_fading_enabled:
                     env._renew_fast_fading()
 
                 # --- Get states (POSIG uses per-agent observation) ---
                 ag_state_list = []
                 for ag_idx in range(len(agent_list)):
-                    # ag_state = env.get_state([ag_idx, 0], 0, t)
                     ag_state = env.get_state(ag_idx, t)
                     ag_state_list.append(ag_state)
 
@@ -179,20 +174,12 @@ class IDQLtrainerNS:
 
                 pre_empty_mask = (env.queue <= 0).squeeze(axis=1)
                 actions = np.array([a.item() for a in ag_action_list])
-                tx_mask = actions != (action_dim - 1)
+                tx_mask = actions != (env.n_actions - 1)
 
-                # global_reward, individual_ag_rewards, V2I_throughput, done = env.step(
-                #     RRA_all_agents.copy(), t, 1
-                # )
                 global_reward, done = env.step(RRA_all_agents.copy(), t)
 
                 _post_empty_tx_mask = pre_empty_mask & tx_mask
 
-                # For NFIG, add V2I throughput to global reward
-                # if params.task_type == "NFIG":
-                #     global_reward = global_reward + sum(V2I_throughput)
-
-                # total_rewards += global_reward
                 total_rewards += global_reward
 
                 if global_reward > max_joint_action_reward:
@@ -203,7 +190,6 @@ class IDQLtrainerNS:
                 # --- Get next states (POSIG uses per-agent observation) ---
                 ag_next_state_list = []
                 for ag_idx in range(len(agent_list)):
-                    # ag_next_state = env.get_state([ag_idx, 0], epsi, t + 1)
                     ag_next_state = env.get_state(ag_idx, t + 1)
                     ag_next_state_list.append(ag_next_state)
 
