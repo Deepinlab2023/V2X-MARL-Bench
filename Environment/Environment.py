@@ -562,15 +562,15 @@ class Environ:
             State array with shape (1, state_dim)
         """
         if self.task_type == "NFIG":
-            return self._get_state_NFIG(ag_idx, t)
+            return self._get_state_NFIG(t)
         elif self.task_type == "SIG":
-            return self._get_state_SIG(ag_idx, t)
+            return self._get_state_SIG(t)
         elif self.task_type == "POSIG":
             return self._get_state_POSIG(ag_idx, t)
         else:
             raise ValueError(f"Unknown task_type: {self.task_type}")
 
-    def _get_state_NFIG(self, ag_idx, t):
+    def _get_state_NFIG(self, t):
         """State for NFIG: G_i + G_ji"""
         state = np.array([])
         g_i = np.array([])
@@ -601,7 +601,7 @@ class Environ:
         state = state.reshape((1, self.state_dim))
         return state
 
-    def _get_state_SIG(self, ag_idx, t):
+    def _get_state_SIG(self, t):
         """State for SIG: t + G_i + G_ji + G_m + G_Bi + G_iB + I_prev + queue"""
 
         def norm_gain(pl_db, gain_type):

@@ -24,19 +24,12 @@ class IDQLrunner:
 
         test_rewards_n_trails = []
 
-        if self.env_name == 'POSIG':
-            for trial in range(algo_params.num_trials):
-                print(f"Trial: {trial + 1}")
-                train_rewards, test_rewards = IDQLtrainerNS.train_IDQL_NoSharing(trial, **train_params)
-                test_rewards_n_trails.append(test_rewards)
-        else:
-            for trial in range(algo_params.num_trials):
-                print(f"Trial: {trial + 1}")
-                if algo_params.no_sharing:
-                    train_rewards, test_rewards = IDQLtrainerNS.train_IDQL_NoSharing(trial, **train_params)
-                    test_rewards_n_trails.append(test_rewards)
-                else:
-                    train_rewards, test_rewards = IDQLtrainerPS.train_IDQL_ParameterSharing(trial, **train_params)
+
+        for trial in range(algo_params.num_trials):
+            print(f"Trial: {trial + 1}")
+            train_rewards, test_rewards = IDQLtrainerNS.train_IDQL_NoSharing(**train_params)
+            test_rewards_n_trails.append(test_rewards)
+
 
         print(self.env_name)
         print("test_rewards_n_trails: ", test_rewards_n_trails)

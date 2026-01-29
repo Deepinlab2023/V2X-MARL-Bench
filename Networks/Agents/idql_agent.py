@@ -45,21 +45,22 @@ class QNetwork(nn.Module):
 class DQNAgent:
     def __init__(
         self,
-        ag_idx,
-        num_agents,
-        state_dim,
-        action_dim,
-        is_hysteretic_q,
-        memory_capacity=10000,
-        batch_size=64,
-        gamma=0.9,
-        tau=0.005,
-        lr=1e-6,
-        hidden_dim=128,
-        hysteretic_high_lr=1.1,
-        hysteretic_low_lr=0.2,
-        force_nt_when_empty=False,
+        ag_idx: int,
+        num_agents: int,
+        state_dim: int,
+        action_dim: int,
+        is_hysteretic_q: bool,
+        memory_capacity: int,
+        batch_size: int,
+        gamma: float,
+        tau: float,
+        lr: float,
+        hidden_dim: int,
+        hysteretic_high_lr: float,
+        hysteretic_low_lr: float,
+        force_nt_when_empty: bool,
     ):
+
         self.ag_idx = ag_idx
         self.num_agents = num_agents
         self.state_dim = state_dim

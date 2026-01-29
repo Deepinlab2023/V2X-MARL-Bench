@@ -13,7 +13,7 @@ from Environment.environment_utility import *
 # from Runners.mappo_runner import MAPPOrunner
 
 from Runners.idql_runner import IDQLrunner
-# from Runners.qmix_runner import QMIXrunner
+from Runners.qmix_runner import QMIXrunner
 
 
 
