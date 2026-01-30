@@ -3,12 +3,12 @@ import torch as th
 import torch.nn.functional as F
 from torch.distributions import Categorical
 
-from Networks.Agents.a2c_actor import A2CSharedActor, A2CActorNS
+from Networks.Actors.a2c_actor import A2CSharedActor, A2CActorNS
 from Networks.Critics.a2c_critic import A2CCentralizedCritic
 from Helpers.a2c_helper import A2CHelper
 from Benchmarkers.maa2c_test import MAA2Ctester
 
-from Helpers.env_helper import EnvironHelper
+from Environment.environment import Environ
 
 device = th.device("cuda" if th.cuda.is_available() else "cpu")
 
@@ -19,9 +19,13 @@ class MAA2CTrainer:
         trainer = MAA2CTrainer(params)
         return trainer.train()
 
+    # ==========================
+    #   INIT / SETUP
+    # ==========================
     def __init__(self, params):
         self.params = params
         self._compatibility_checks()
+        self.env = Environ(params.env_params)
         self.csv_file, self.csv_writer = self._init_logging()
         (
             self.actor_shared,
@@ -43,30 +47,41 @@ class MAA2CTrainer:
         A2CHelper.basic_a2c_compat_checks(self.params, algo_name="MAA2C")
 
     def _init_logging(self):
-        return A2CHelper.init_csv_logging(self.params, algo_name="MAA2C", posig_tag="FNN")
+        p = self.params
+        if p.rnn:
+            posig_tag = "RNN"
+        else:
+            posig_tag = "FNN"
+        return A2CHelper.init_csv_logging(p, algo_name="MAA2C", posig_tag=posig_tag)
 
     def _init_networks_and_optimizers(self):
         p = self.params
 
         if p.no_sharing:
-            actors = [A2CActorNS(p.state_dim, p.action_dim, p.actor_hidden_dim).to(device)
-                      for _ in range(p.num_agents)]
+            # NS: one actor per agent, FO only
+            actors = [
+                A2CActorNS(p.global_state_dim, p.action_dim, p.actor_hidden_dim).to(device)
+                for _ in range(p.n_agent)
+            ]
             actor_shared = None
         else:
-            if p.env_name == "POSIG":
+            # PS: shared actor
+            if p.task_type == "POSIG":
                 base_actor_dim = p.observation_dim
             else:
-                base_actor_dim = p.state_dim
+                base_actor_dim = p.global_state_dim
 
-            actor_input_dim = base_actor_dim + p.num_agents
-            if p.prev_action_input:  # allowed only if rnn=True
+            actor_input_dim = base_actor_dim + p.n_agent
+            if p.prev_action_input:  # allowed only if rnn=True (checked in compat)
                 actor_input_dim += p.action_dim
 
             actor_shared = A2CSharedActor(actor_input_dim, p).to(device)
             actors = None
 
+        # Centralized critic always uses global state
         critic = A2CCentralizedCritic(p).to(device)
 
+        # Optimizers
         if p.no_sharing:
             opt_actors = [th.optim.Adam(a.parameters(), lr=p.alpha) for a in actors]
             opt_actor_shared = None
@@ -78,108 +93,132 @@ class MAA2CTrainer:
 
         return actor_shared, actors, critic, opt_actor_shared, opt_actors, opt_critic
 
-    # ----------------------------------------------------- #
-    #  Rollout
-    # ----------------------------------------------------- #
+    # ==========================
+    #   ROLLOUT
+    # ==========================
     def _run_single_episode(self):
         p = self.params
+        env = self.env
+
         total_rewards = 0.0
         buffer = []
         done = False
 
-        # Only track RNN state for POSIG + PS + RNN
-        if (not p.no_sharing) and p.env_name == "POSIG" and p.rnn:
-            hidden_state = [
-                th.zeros(1, 1, p.actor_hidden_dim, device=device)
-                for _ in range(p.num_agents)
-            ]
-            if p.prev_action_input:
-                prev_actions = [
-                    th.zeros(1, p.action_dim, device=device)
-                    for _ in range(p.num_agents)
-                ]
-            else:
-                prev_actions = None
-        else:
-            hidden_state = None
-            prev_actions = None
+        # POSIG + PS RNN state initialization
+        hidden_state, prev_actions = self._init_posig_states()
 
-        num_control_interval = A2CHelper.num_control_intervals(p)
+        # Sample and load vehicle positions
         sampled_data = A2CHelper.sample_veh_positions(p)
-        p.env.loaded_veh_data = sampled_data
-        p.env.new_random_game()
+        env.train_data = sampled_data
+        env.new_random_game()
 
-        for interval in range(1, num_control_interval + 1):
-            if interval > 1:
-                p.env.renew_positions_by_file(interval)
-                p.env.renew_channel()
-                p.env.renew_queue()
+        for t in range(p.n_step_per_episode):
+            if p.fast_fading_enabled:
+                env._renew_fast_fading()
 
-            for t in range(p.n_step_per_episode_communication):
-                if p.if_fastFading:
-                    p.env.renew_fast_fading()
+            actions = []
+            RRA_all_agents = np.zeros([p.n_agent, 1, 2], dtype="int32")
 
-                actions = []
-                RRA_all_agents = np.zeros([p.n_veh - 1, p.n_neighbor, 2], dtype="int32")
-                environ_helper = EnvironHelper(p)
+            # Global state (used by centralized critic)
+            # For POSIG, env.get_state returns local obs, so use get_global_state instead
+            if p.task_type == "POSIG":
+                global_state = env.get_global_state(t)
+            else:
+                global_state = env.get_state(0, t)
+            global_state = th.tensor(global_state, dtype=th.float32, device=device).squeeze()
 
-                global_state = p.env.get_state([0, 0], 0, t)
-                global_state = th.tensor(global_state, dtype=th.float32, device=device).squeeze()
+            # Collect observations for POSIG
+            if p.task_type == "POSIG":
+                observations = []
+            else:
+                observations = None
 
-                if p.env_name == "POSIG":
-                    observations = []
+            # Select actions for all agents
+            for a in range(p.n_agent):
+                if p.no_sharing:
+                    action = self._select_action_ns(a, global_state)
                 else:
-                    observations = None
+                    action, hidden_state, prev_actions = self._select_action_ps(
+                        a=a,
+                        global_state=global_state,
+                        observations=observations,
+                        hidden_state=hidden_state,
+                        prev_actions=prev_actions,
+                        t=t,
+                    )
 
-                for a in range(p.num_agents):
-                    if not p.no_sharing:
-                        action = self._select_action_ps(
-                            a=a,
-                            global_state=global_state,
-                            observations=observations,
-                            hidden_state=hidden_state,
-                            prev_actions=prev_actions,
-                            t=t,
-                        )
-                    else:
-                        action = self._select_action_ns(a, global_state)
+                actions.append(action.item())
+                sc_idx, power_idx = env.map_action_to_rra(action, agent_idx=a)
+                RRA_all_agents[a, 0, 0] = sc_idx
+                RRA_all_agents[a, 0, 1] = power_idx
 
-                    actions.append(action.item())
-                    RRA_all_agents[a, 0, 0], RRA_all_agents[a, 0, 1] = \
-                        environ_helper.mapping_action2RRA(action)
+            # Environment step
+            joint_action = actions
+            global_reward, done = env.step(RRA_all_agents.copy(), t)
+            global_reward = global_reward[0, 0]
 
-                joint_action = actions
-                global_reward, _, V2I_throughput, done = p.env.step(RRA_all_agents.copy(), t, interval)
+            # Store transition
+            if p.task_type == "POSIG":
+                buffer.append((global_state, observations, joint_action, global_reward))
+            else:
+                buffer.append((global_state, joint_action, global_reward))
 
-                if p.game_mode == 1:
-                    global_reward = global_reward[0, 0] + sum(V2I_throughput)
-                else:
-                    global_reward = global_reward[0, 0]
-
-                if p.env_name == "POSIG":
-                    buffer.append((global_state, observations, joint_action, global_reward))
-                else:
-                    buffer.append((global_state, joint_action, global_reward))
-
-                total_rewards += global_reward
+            total_rewards += global_reward
 
         rtrns = A2CHelper.compute_returns_from_buffer(buffer, done, p.gamma)
         return buffer, rtrns, total_rewards
 
-    def _select_action_ps(self, a, global_state, observations, hidden_state, prev_actions, t):
+    # ==========================
+    #   POSIG STATE INIT
+    # ==========================
+    def _init_posig_states(self):
         p = self.params
+
+        # Only for PS + POSIG + RNN
+        if not ((not p.no_sharing) and p.task_type == "POSIG" and p.rnn):
+            return None, None
+
+        hidden_state = [
+            th.zeros(1, 1, p.actor_hidden_dim, device=device)
+            for _ in range(p.n_agent)
+        ]
+
+        if p.prev_action_input:
+            prev_actions = [
+                th.zeros(1, p.action_dim, device=device)
+                for _ in range(p.n_agent)
+            ]
+        else:
+            prev_actions = None
+
+        return hidden_state, prev_actions
+
+    # ==========================
+    #   ACTION SELECTION (PS)
+    # ==========================
+    def _select_action_ps(self, a, global_state, observations, hidden_state, prev_actions, t):
+        """
+        Parameter sharing case:
+        - FO (NFIG/SIG): use global_state + agent_id
+        - POSIG: use observation + agent_id [+ prev_action if RNN enabled]
+        """
+        p = self.params
+        env = self.env
         actor_shared = self.actor_shared
 
-        agent_id = F.one_hot(th.tensor(a, device=device), num_classes=p.num_agents).float()
+        agent_id = F.one_hot(
+            th.tensor(a, device=device),
+            num_classes=p.n_agent,
+        ).float()
 
-        if p.env_name == "POSIG":
-            observation = p.env.get_observation([a, 0], 0, t)
+        if p.task_type == "POSIG":
+            observation = env.get_state(a, t)
             observation = th.tensor(observation, dtype=th.float32, device=device).squeeze()
             observations.append(observation)
 
             if p.rnn:
                 if p.prev_action_input:
-                    prev_a = prev_actions[a].squeeze(0)
+                    prev_a = prev_actions[a].squeeze(0)  # [action_dim]
                     actor_input = th.cat([observation, agent_id, prev_a], dim=-1)
                 else:
                     actor_input = th.cat([observation, agent_id], dim=-1)
@@ -190,35 +229,51 @@ class MAA2CTrainer:
                 actor_input = th.cat([observation, agent_id], dim=-1)
                 logits = actor_shared(actor_input)
         else:
+            # FO PS (NFIG / SIG)
             actor_input = th.cat([global_state, agent_id], dim=-1)
             logits = actor_shared(actor_input)
 
+        # Action masking
         if p.action_masking:
-            queue_a = p.env.queue.flatten()[a]
+            queue_a = env.queue.flatten()[a]
             action, _ = actor_shared.action_sampler(logits, queue_a)
         else:
             action, _ = actor_shared.action_sampler(logits)
 
-        if p.env_name == "POSIG" and p.rnn and p.prev_action_input:
-            prev_actions[a] = F.one_hot(action, num_classes=p.action_dim).float().unsqueeze(0).to(device)
+        # Update prev_actions if RNN + prev_action_input
+        if p.task_type == "POSIG" and p.rnn and p.prev_action_input:
+            prev_actions[a] = F.one_hot(
+                action, num_classes=p.action_dim
+            ).float().unsqueeze(0).to(device)
 
-        return action
+        return action, hidden_state, prev_actions
 
+    # ==========================
+    #   ACTION SELECTION (NS)
+    # ==========================
     def _select_action_ns(self, a, global_state):
+        """
+        No sharing: FO only, one actor per agent.
+        """
         p = self.params
+        env = self.env
+
         logits = self.actors[a](global_state)
+
         if p.action_masking:
-            queue_a = p.env.queue.flatten()[a]
+            queue_a = env.queue.flatten()[a]
             action, _ = self.actors[a].action_sampler(logits, queue_a)
         else:
             action, _ = self.actors[a].action_sampler(logits)
+
         return action
 
-    # ----------------------------------------------------- #
-    #  Testing
-    # ----------------------------------------------------- #
+    # ==========================
+    #   TESTING
+    # ==========================
     def _run_test(self):
         p = self.params
+
         if (self.episode - 1) % p.test_interval != 0:
             return
 
@@ -234,41 +289,43 @@ class MAA2CTrainer:
 
         A2CHelper.finalize_test(self, test_reward, algo_name="MAA2C")
 
-    # ----------------------------------------------------- #
-    #  Update routing
-    # ----------------------------------------------------- #
+    # ==========================
+    #   UPDATE ROUTING
+    # ==========================
     def _update_from_batch(self, batch_global_state, batch_observations, batch_joint_actions, batch_rtrns, has_obs):
         p = self.params
-        if (not p.no_sharing) and p.env_name == "POSIG" and p.rnn:
+
+        if (not p.no_sharing) and p.task_type == "POSIG" and p.rnn:
             self._update_rnn_case(batch_global_state, batch_observations, batch_joint_actions, batch_rtrns)
         else:
             self._update_fnn_case(batch_global_state, batch_observations, batch_joint_actions, batch_rtrns, has_obs)
 
-    # ----------------------------------------------------- #
-    #  RNN case
-    # ----------------------------------------------------- #
+    # ==========================
+    #   RNN UPDATE
+    # ==========================
     def _update_rnn_case(self, batch_global_state, batch_observations, batch_joint_actions, batch_rtrns):
         p = self.params
         b = p.batch_size
-        T = p.n_step_per_episode_communication
+        T = p.n_step_per_episode
 
         global_seq = batch_global_state.view(b, T, -1)
-        act_seq = batch_joint_actions.view(b, T, p.num_agents)
+        act_seq = batch_joint_actions.view(b, T, p.n_agent)
         rtrn_seq = batch_rtrns.view(b, T)
-        obs_seq = batch_observations.view(b, T, p.num_agents, -1)
+        obs_seq = batch_observations.view(b, T, p.n_agent, -1)
 
+        # Build critic input with optional prev_action
         if p.prev_action_input:
-            prev_joint_seq = th.zeros(b, T, p.num_agents, p.action_dim, device=device, dtype=th.float32)
+            prev_joint_seq = th.zeros(b, T, p.n_agent, p.action_dim, device=device, dtype=th.float32)
             if T > 1:
                 prev_idx = act_seq[:, :-1, :].long()
                 prev_onehot = F.one_hot(prev_idx, num_classes=p.action_dim).float()
                 prev_joint_seq[:, 1:, :, :] = prev_onehot
-            prev_joint_flat = prev_joint_seq.view(b, T, p.num_agents * p.action_dim)
+            prev_joint_flat = prev_joint_seq.view(b, T, p.n_agent * p.action_dim)
             critic_input_seq = th.cat([global_seq, prev_joint_flat], dim=-1)
         else:
             critic_input_seq = global_seq
 
-        # critic
+        # Critic update
         self.opt_critic.zero_grad()
         h0_critic = th.zeros(1, b, p.critic_hidden_dim, device=device)
         V_seq, _ = self.critic(critic_input_seq, h0_critic)
@@ -277,6 +334,7 @@ class MAA2CTrainer:
         critic_loss.backward()
         self.opt_critic.step()
 
+        # Compute advantages
         with th.no_grad():
             V_det, _ = self.critic(critic_input_seq, h0_critic)
             V_det = V_det.squeeze(-1)
@@ -285,15 +343,15 @@ class MAA2CTrainer:
         if p.adv_normalization:
             advantages = (advantages - advantages.mean()) / advantages.std(unbiased=False).clamp_min(1e-8)
 
-        # actor
+        # Actor update
         self.opt_actor_shared.zero_grad()
         total_actor_loss = 0.0
         h0_actor = th.zeros(1, b, p.actor_hidden_dim, device=device)
 
-        for a in range(p.num_agents):
+        for a in range(p.n_agent):
             agent_base_seq = obs_seq[:, :, a, :]
             agent_idx = th.full((b, T), a, dtype=th.long, device=device)
-            agent_id_seq = F.one_hot(agent_idx, num_classes=p.num_agents).float()
+            agent_id_seq = F.one_hot(agent_idx, num_classes=p.n_agent).float()
 
             if p.prev_action_input:
                 prev_a_seq = prev_joint_seq[:, :, a, :]
@@ -303,6 +361,7 @@ class MAA2CTrainer:
 
             logits_seq, _ = self.actor_shared(actor_input_seq, h0_actor)
 
+            # Action masking
             if p.action_masking:
                 queue_seq = agent_base_seq[:, :, -1]
                 done_mask = (queue_seq <= 0).unsqueeze(-1)
@@ -318,29 +377,32 @@ class MAA2CTrainer:
             loss_a = -(logp * advantages).mean() - p.tau * ent.mean()
             total_actor_loss += loss_a
 
-        total_actor_loss = total_actor_loss / p.num_agents
+        total_actor_loss = total_actor_loss / p.n_agent
         total_actor_loss.backward()
         self.opt_actor_shared.step()
 
-    # ----------------------------------------------------- #
-    #  FNN case
-    # ----------------------------------------------------- #
+    # ==========================
+    #   FNN UPDATE
+    # ==========================
     def _update_fnn_case(self, batch_global_state, batch_observations, batch_joint_actions, batch_rtrns, has_obs):
         p = self.params
         B = batch_joint_actions.size(0)
 
-        critic_input = batch_global_state  # always (no prev_joint in FNN)
+        # Centralized critic uses global state
+        critic_input = batch_global_state
 
-        # critic
+        # Critic update
         self.opt_critic.zero_grad()
         V = self.critic(critic_input).squeeze(-1)
         critic_loss = (batch_rtrns - V).pow(2).mean()
         critic_loss.backward()
         self.opt_critic.step()
 
-        if p.env_name != "POSIG":
-            queues = batch_global_state[:, -p.num_agents:]
+        # Extract queues for FO masking
+        if p.task_type != "POSIG":
+            queues = batch_global_state[:, -p.n_agent:]
 
+        # Compute advantages
         with th.no_grad():
             V_det = self.critic(critic_input).squeeze(-1)
 
@@ -348,9 +410,10 @@ class MAA2CTrainer:
         if p.adv_normalization:
             advantages = (advantages - advantages.mean()) / advantages.std(unbiased=False).clamp_min(1e-8)
 
-        # actor
+        # Actor update
         if p.no_sharing:
-            for a in range(p.num_agents):
+            # NS: update each actor separately
+            for a in range(p.n_agent):
                 logits = self.actors[a](batch_global_state.to(device))
 
                 if p.action_masking:
@@ -369,19 +432,23 @@ class MAA2CTrainer:
                 self.opt_actors[a].step()
 
         else:
+            # PS: shared actor
             self.opt_actor_shared.zero_grad()
             total_loss = 0.0
 
-            for a in range(p.num_agents):
-                agent_id = F.one_hot(th.tensor(a, device=device), num_classes=p.num_agents).float()
+            for a in range(p.n_agent):
+                agent_id = F.one_hot(
+                    th.tensor(a, device=device),
+                    num_classes=p.n_agent,
+                ).float()
                 agent_id = agent_id.unsqueeze(0).repeat(B, 1)
 
-                if has_obs and p.env_name == "POSIG":
+                if has_obs and p.task_type == "POSIG":
                     agent_base = batch_observations[:, a, :].to(device)
                     queue = agent_base[:, -1]
                 else:
                     agent_base = batch_global_state.to(device)
-                    if p.env_name != "POSIG":
+                    if p.task_type != "POSIG":
                         queue = queues[:, a]
 
                 actor_input = th.cat([agent_base, agent_id], dim=-1)
@@ -399,6 +466,6 @@ class MAA2CTrainer:
                 loss_a = -(dist.log_prob(actions) * advantages).mean() - p.tau * dist.entropy().mean()
                 total_loss += loss_a
 
-            total_loss = total_loss / p.num_agents
+            total_loss = total_loss / p.n_agent
             total_loss.backward()
             self.opt_actor_shared.step()

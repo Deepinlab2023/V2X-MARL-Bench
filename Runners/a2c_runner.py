@@ -2,7 +2,7 @@ from types import SimpleNamespace as SN
 from Configuration.a2c_params import A2Cparameters
 
 from Trainers.ia2c_trainer import IA2CTrainer
-# from Trainers.maa2c_trainer import MAA2CTrainer
+from Trainers.maa2c_trainer import MAA2CTrainer
 
 
 class A2Crunner:

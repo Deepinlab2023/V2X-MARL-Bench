@@ -91,13 +91,13 @@ class A2CHelper:
                 csv_name = (
                     f"{prefix}{params.trial_run}_SIG"
                     f"{int(params.n_agent)}{int(params.n_sc)}_"
-                    f"ML_{params.ff_on}{suffix}.csv"
+                    f"ML_{params.fast_fading_tag}{suffix}.csv"
                 )
             else:
                 csv_name = (
                     f"{prefix}{params.trial_run}_SIG"
                     f"{int(params.n_agent)}{int(params.n_sc)}_"
-                    f"SL_{params.ff_on}_{params.loc}{suffix}.csv"
+                    f"SL_{params.fast_fading_tag}_{params.loc}{suffix}.csv"
                 )
 
         elif params.task_type == "POSIG":
