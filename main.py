@@ -9,7 +9,7 @@ from Environment.environment_utility import *
 
 # # Import Runners
 # from Runners.ippo_runner import IPPOrunner
-# from Runners.a2c_runner import A2Crunner
+from Runners.a2c_runner import A2Crunner
 # from Runners.mappo_runner import MAPPOrunner
 
 from Runners.idql_runner import IDQLrunner
