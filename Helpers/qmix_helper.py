@@ -7,18 +7,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-Transition = namedtuple("Transition", ("state", "action", "next_state", "done", "reward"))
+Transition = namedtuple("Transition", ("state", "action", "next_state", "done", "reward", "global_state", "global_next_state"))
 
 
-def QMIX_network_init(env, algo_params, env_name):
+def QMIX_network_init(env, algo_params, global_state_dim=None):
     """Initialize QMIX/VDN mixer args from environment and algo_params."""
     parser = argparse.ArgumentParser(description="QMIX Network")
     mix_args, _ = parser.parse_known_args()
 
-    # For POSIG: mixer uses concatenated local observations
-    # For SIG/NFIG: mixer uses global state
-    if env_name == "POSIG":
-        mix_args.state_shape = env.local_state_dim * env.n_agent
+    # Mixer always uses global (SIG) state dimension
+    if global_state_dim is not None:
+        mix_args.state_shape = global_state_dim
     else:
         mix_args.state_shape = env.state_dim
 
@@ -110,26 +109,6 @@ class ReplayMemory:
         return len(self.memory)
 
 
-# class QMIXLearner:
-#     def __init__(
-#         self,
-#         agent_list,
-#         device: th.device,
-#         is_vdn: bool,
-#         mix_args,
-#         memory_capacity: int = 10000,
-#         batch_size: int = 64,
-#         agent_lr: float = 1e-5,
-#         mixer_lr: float = 1e-6,
-#     ):
-#         self.memory = ReplayMemory(memory_capacity)
-#         self.agent_list = list(agent_list)
-#         self.batch_size = batch_size
-#         self.device = device
-#         self.is_vdn = is_vdn
-#         self.agent_lr = agent_lr
-#         self.mixer_lr = mixer_lr
-
 class QMIXLearner:
     def __init__(
         self,
@@ -137,19 +116,16 @@ class QMIXLearner:
         device: th.device,
         is_vdn: bool,
         mix_args,
-        env_name: str,
         memory_capacity: int,
         batch_size: int,
         agent_lr: float,
         mixer_lr: float,
     ):
-
         self.memory = ReplayMemory(memory_capacity)
         self.agent_list = list(agent_list)
         self.batch_size = batch_size
         self.device = device
         self.is_vdn = is_vdn
-        self.env_name = env_name
         self.agent_lr = agent_lr
         self.mixer_lr = mixer_lr
 
@@ -177,8 +153,8 @@ class QMIXLearner:
             ]
         )
 
-    def store_transition(self, *args) -> None:
-        self.memory.push(*args)
+    def store_transition(self, state, action, next_state, done, reward, global_state, global_next_state) -> None:
+        self.memory.push(state, action, next_state, done, reward, global_state, global_next_state)
 
     def sample_batch(self):
         if len(self.memory) < self.batch_size:
@@ -203,29 +179,26 @@ class QMIXLearner:
 
         reward_batch = th.tensor(np.vstack(batch.reward), device=self.device)
         done_batch = th.tensor(batch.done, device=self.device, dtype=th.bool)
-        return state_list, next_state_list, action_list, reward_batch, done_batch
+
+        global_state_list = [th.tensor(gs, dtype=th.float32) for gs in batch.global_state]
+        global_next_state_list = [th.tensor(gns, dtype=th.float32) for gns in batch.global_next_state]
+
+        return state_list, next_state_list, action_list, reward_batch, done_batch, global_state_list, global_next_state_list
 
     def centralized_training(self):
         sample = self.sample_batch()
         if sample is None:
             return None
 
-        state_list, next_state_list, action_list, reward_batch, done_batch = sample
+        state_list, next_state_list, action_list, reward_batch, done_batch, global_state_list, global_next_state_list = sample
 
         local_qs = []
         next_local_qs = []
-
-        # Collect all agent state batches for concatenation (for mixer)
-        all_state_batches = []
-        all_next_state_batches = []
 
         for ag_idx, agent in enumerate(self.agent_list):
             state_batch = th.cat(state_list[ag_idx]).to(self.device)
             next_state_batch = th.cat(next_state_list[ag_idx]).to(self.device)
             action_batch = th.cat(action_list[ag_idx]).unsqueeze(1).to(self.device)
-
-            all_state_batches.append(state_batch)
-            all_next_state_batches.append(next_state_batch)
 
             if agent.force_nt_when_empty:
                 all_agent_queues = state_batch[:, -agent.num_agents:]
@@ -274,23 +247,12 @@ class QMIXLearner:
         local_qs = th.cat(local_qs, dim=1)
         next_local_qs = th.cat(next_local_qs, dim=1)
 
-        # # Concatenate all agent states for mixer input
-        # # This works for both POSIG (local obs) and SIG/NFIG (global state - all same)
-        # concat_state_batch = th.cat(all_state_batches, dim=1)
-        # concat_next_state_batch = th.cat(all_next_state_batches, dim=1)
+        # Mixer always uses global state
+        mixer_state_batch = th.cat(global_state_list, dim=0).to(self.device)
+        mixer_next_state_batch = th.cat(global_next_state_list, dim=0).to(self.device)
 
-        # For POSIG: concatenate local observations
-        # For SIG/NFIG: use single global state (all agents have same state)
-        if self.env_name == "POSIG":
-            concat_state_batch = th.cat(all_state_batches, dim=1)
-            concat_next_state_batch = th.cat(all_next_state_batches, dim=1)
-        else:
-            concat_state_batch = all_state_batches[0]
-            concat_next_state_batch = all_next_state_batches[0]
-
-
-        Q_tot = self.eval_mixing_net(local_qs, concat_state_batch)
-        next_Q_tot = self.target_mixing_net(next_local_qs, concat_next_state_batch)
+        Q_tot = self.eval_mixing_net(local_qs, mixer_state_batch)
+        next_Q_tot = self.target_mixing_net(next_local_qs, mixer_next_state_batch)
 
         reward_batch = reward_batch.view(-1, 1, 1)
         done_batch_3d = done_batch.view(-1, 1, 1)

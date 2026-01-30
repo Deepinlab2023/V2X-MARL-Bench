@@ -6,6 +6,7 @@ import os
 
 from Networks.Agents.qmix_agent import QMIXAgent
 from Helpers.qmix_helper import QMIX_network_init, QMIXLearner
+from Helpers.plotting_helper import plot_test_returns
 from Benchmarkers.qmix_test import QMIXtester
 from Environment.environment_utility import *
 
@@ -21,7 +22,7 @@ if platform.system() == "Linux":
 
 class QMIXtrainerPS:
     @staticmethod
-    def train_QMIX_ParameterSharing(env, env_name, env_params, test_data_list,
+    def train_QMIX_ParameterSharing(trial_run, env, env_name, env_params, test_data_list,
                                      is_vdn, algo_params):
         raise ValueError("QMIX PS not finished yet")
 
@@ -59,29 +60,18 @@ class QMIXtrainerNS:
             )
 
         # === QMIX Learner Initialization ===
-        mix_args = QMIX_network_init(env, algo_params, env_name)
-        # qmix_learner = QMIXLearner(
-        #     agent_list,
-        #     device,
-        #     is_vdn,
-        #     mix_args,
-        #     memory_capacity=algo_params.memory_capacity,
-        #     batch_size=algo_params.batch_size,
-        #     agent_lr=algo_params.agent_lr,
-        #     mixer_lr=algo_params.mixer_lr,
-        # )
+        mix_args = QMIX_network_init(env, algo_params, env.global_state_dim)
+
         qmix_learner = QMIXLearner(
             agent_list,
             device,
             is_vdn,
             mix_args,
-            env_name,
             memory_capacity=algo_params.memory_capacity,
             batch_size=algo_params.batch_size,
             agent_lr=algo_params.agent_lr,
             mixer_lr=algo_params.mixer_lr,
         )
-
         qmix_learner.init_model()
 
         # === Epsilon schedule (linear decay over 80% of training) ===
@@ -105,7 +95,7 @@ class QMIXtrainerNS:
             else:
                 epsi = epsi_final
 
-            # Sample data based on task type
+            # --- Sample data based on task type ---
             if env_name == "NFIG" and env_params.loc is not None:
                 sampled_data = sample_veh_position_from_timestep(train_data, env_params.loc)
             elif env_name in ["SIG", "POSIG"] and env_params.loc is None:
@@ -118,34 +108,30 @@ class QMIXtrainerNS:
             env.train_data = sampled_data
             env.new_random_game()
 
+            # --- test episodes ---
             if te % algo_params.test_interval == 0:
                 test_reward = QMIXtester.test_QMIX_NoSharing(
                     agent_list, env_params, algo_params.num_test_episodes, env.n_agent, test_data_list, te
                 )
                 test_rewards.append(test_reward)
 
-                plt.figure(1)
-                plt.clf()
-                plt.plot(test_rewards, label="Test Reward")
-                plt.xlabel("Test Interval")
-                plt.ylabel("Return")
-                plt.title("Test Return Over Time QMIX")
-                plt.legend()
-                plt.grid(True)
-                plt.draw()
-                plt.pause(1)
-
+                plot_test_returns(
+                    test_rewards, title="Test Return Over Time QMIX", figure_id=1, pause=1.0,
+                )
                 print(f'Training reward at episode {te + 1}: {test_reward:.2f}')
 
             for t in range(env_params.n_step_per_episode):
                 if env_params.fast_fading_enabled:
                     env._renew_fast_fading()
 
-                # --- Get states ---
+                # --- Get states (local for POSIG, global for others) ---
                 ag_state_list = []
                 for ag_idx in range(len(agent_list)):
                     ag_state = env.get_state(ag_idx, t)
                     ag_state_list.append(ag_state)
+
+                # --- Get global state for mixer (always use SIG state) ---
+                global_state = env.get_global_state(t)
 
                 # --- Get actions ---
                 ag_action_list = []
@@ -169,8 +155,14 @@ class QMIXtrainerNS:
                     ag_next_state = env.get_state(ag_idx, t + 1)
                     ag_next_state_list.append(ag_next_state)
 
+                # --- Get next global state for mixer ---
+                global_next_state = env.get_global_state(t + 1)
+
                 # --- Store transition ---
-                qmix_learner.store_transition(ag_state_list, ag_action_list, ag_next_state_list, done, global_reward)
+                qmix_learner.store_transition(
+                    ag_state_list, ag_action_list, ag_next_state_list, done, global_reward,
+                    global_state, global_next_state
+                )
 
                 # --- Train ---
                 qmix_learner.centralized_training()

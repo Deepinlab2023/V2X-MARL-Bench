@@ -5,6 +5,7 @@ import platform
 import os
 
 from Networks.Agents.idql_agent import DQNAgent
+from Helpers.plotting_helper import plot_test_returns
 from Benchmarkers.idql_test import *
 from Environment.environment_utility import *
 
@@ -75,13 +76,10 @@ class IDQLtrainerNS:
         prev_joint_action = []
         joint_action_over_te = []
 
-        max_joint_action_reward = float("-inf")
-        min_joint_action_reward = float("inf")
-        explored_joint_actions = set()
-
         train_data = env_params.train_data
 
 
+        # === Main Training Loop ===
         for te in range(algo_params.training_episodes):
             total_rewards = 0
 
@@ -91,7 +89,7 @@ class IDQLtrainerNS:
             else:
                 epsi = epsi_final
 
-            # Sample data based on task type
+            # --- Sample data based on task type ---
             if env_name == "NFIG" and env_params.loc is not None:
                 sampled_data = sample_veh_position_from_timestep(train_data, env_params.loc)
             elif env_name in ["SIG", "POSIG"] and env_params.loc is None:
@@ -104,6 +102,7 @@ class IDQLtrainerNS:
             env.train_data = sampled_data
             env.new_random_game()
 
+            # --- test episodes ---
             if te % algo_params.test_interval == 0:
                 test_reward, joint_action = IDQLtester.test_IDQL_NoSharing(
                     agent_list, env_params, algo_params.num_test_episodes, env.n_agent, test_data_list, te
@@ -113,16 +112,9 @@ class IDQLtrainerNS:
 
                 test_rewards.append(test_reward)
 
-                plt.figure(1)
-                plt.clf()
-                plt.plot(test_rewards, label="Test Reward")
-                plt.xlabel("Test Interval")
-                plt.ylabel("Return")
-                plt.title("Test Return Over Time IDQL")
-                plt.legend()
-                plt.grid(True)
-                plt.draw()
-                plt.pause(1)
+                plot_test_returns(
+                    test_rewards, title="Test Return Over Time IDQL", figure_id=1, pause=1.0,
+                )
 
                 print(f"Training reward at episode {te + 1}: {test_reward:.2f}")
 
@@ -168,8 +160,6 @@ class IDQLtrainerNS:
                         action, agent_idx=ag_idx
                     )
 
-                explored_joint_actions.add(tuple(a.item() for a in joint_action))
-
                 pre_empty_mask = (env.queue <= 0).squeeze(axis=1)
                 actions = np.array([a.item() for a in ag_action_list])
                 tx_mask = actions != (env.n_actions - 1)
@@ -179,11 +169,6 @@ class IDQLtrainerNS:
                 _post_empty_tx_mask = pre_empty_mask & tx_mask
 
                 total_rewards += global_reward
-
-                if global_reward > max_joint_action_reward:
-                    max_joint_action_reward = global_reward
-                if global_reward < min_joint_action_reward:
-                    min_joint_action_reward = global_reward
 
                 # --- Get next states (POSIG uses per-agent observation) ---
                 ag_next_state_list = []
@@ -208,9 +193,5 @@ class IDQLtrainerNS:
                     agent_list[ag_idx].soft_update_target_net()
 
             episode_rewards.append(np.mean(total_rewards))
-
-        print(f"\nMax joint action reward seen during training: {float(max_joint_action_reward):.2f}")
-        print(f"Min joint action reward seen during training: {float(min_joint_action_reward):.2f}")
-        print(f"Unique joint actions explored during training: {len(explored_joint_actions)}")
 
         return episode_rewards, test_rewards

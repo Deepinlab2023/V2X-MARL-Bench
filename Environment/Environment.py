@@ -154,7 +154,12 @@ class Environ:
         else:
             raise ValueError(f"Unknown task_type: {self.task_type}")
 
+        self.global_state_dim = ((timestep_dims) + (self.n_agent) + (self.n_agent) * (self.n_agent - 1) +
+                                 (self.n_sc) + (self.n_sc * self.n_agent) + (self.n_agent) +
+                                 (self.n_agent * self.n_sc) + (self.n_agent))
+
         self.local_state_dim = (timestep_dims) + (1) + (1) + (self.n_sc) + (1)
+
 
     # =========================================================================
     # Action Mapping
@@ -569,6 +574,9 @@ class Environ:
             return self._get_state_POSIG(ag_idx, t)
         else:
             raise ValueError(f"Unknown task_type: {self.task_type}")
+
+    def get_global_state(self, t):
+        return self._get_state_SIG(t)
 
     def _get_state_NFIG(self, t):
         """State for NFIG: G_i + G_ji"""

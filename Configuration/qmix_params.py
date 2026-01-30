@@ -27,5 +27,5 @@ class QMIXparameters:
         self.memory_capacity = 10000
 
         # Environment constraints
-        self.force_nt_when_empty = True
+        self.force_nt_when_empty = False
 
