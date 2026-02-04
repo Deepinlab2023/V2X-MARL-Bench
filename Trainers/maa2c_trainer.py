@@ -47,12 +47,7 @@ class MAA2CTrainer:
         A2CHelper.basic_a2c_compat_checks(self.params, algo_name="MAA2C")
 
     def _init_logging(self):
-        p = self.params
-        if p.rnn:
-            posig_tag = "RNN"
-        else:
-            posig_tag = "FNN"
-        return A2CHelper.init_csv_logging(p, algo_name="MAA2C", posig_tag=posig_tag)
+        return A2CHelper.init_csv_logging(self.params, algo_name="MAA2C", posig_tag=None)
 
     def _init_networks_and_optimizers(self):
         p = self.params
@@ -72,8 +67,6 @@ class MAA2CTrainer:
                 base_actor_dim = p.global_state_dim
 
             actor_input_dim = base_actor_dim + p.n_agent
-            if p.prev_action_input:  # allowed only if rnn=True (checked in compat)
-                actor_input_dim += p.action_dim
 
             actor_shared = A2CSharedActor(actor_input_dim, p).to(device)
             actors = None
@@ -103,9 +96,6 @@ class MAA2CTrainer:
         total_rewards = 0.0
         buffer = []
         done = False
-
-        # POSIG + PS RNN state initialization
-        hidden_state, prev_actions = self._init_posig_states()
 
         # Sample and load vehicle positions
         sampled_data = A2CHelper.sample_veh_positions(p)
@@ -138,12 +128,10 @@ class MAA2CTrainer:
                 if p.no_sharing:
                     action = self._select_action_ns(a, global_state)
                 else:
-                    action, hidden_state, prev_actions = self._select_action_ps(
+                    action = self._select_action_ps(
                         a=a,
                         global_state=global_state,
                         observations=observations,
-                        hidden_state=hidden_state,
-                        prev_actions=prev_actions,
                         t=t,
                     )
 
@@ -169,38 +157,13 @@ class MAA2CTrainer:
         return buffer, rtrns, total_rewards
 
     # ==========================
-    #   POSIG STATE INIT
-    # ==========================
-    def _init_posig_states(self):
-        p = self.params
-
-        # Only for PS + POSIG + RNN
-        if not ((not p.no_sharing) and p.task_type == "POSIG" and p.rnn):
-            return None, None
-
-        hidden_state = [
-            th.zeros(1, 1, p.actor_hidden_dim, device=device)
-            for _ in range(p.n_agent)
-        ]
-
-        if p.prev_action_input:
-            prev_actions = [
-                th.zeros(1, p.action_dim, device=device)
-                for _ in range(p.n_agent)
-            ]
-        else:
-            prev_actions = None
-
-        return hidden_state, prev_actions
-
-    # ==========================
     #   ACTION SELECTION (PS)
     # ==========================
-    def _select_action_ps(self, a, global_state, observations, hidden_state, prev_actions, t):
+    def _select_action_ps(self, a, global_state, observations, t):
         """
         Parameter sharing case:
         - FO (NFIG/SIG): use global_state + agent_id
-        - POSIG: use observation + agent_id [+ prev_action if RNN enabled]
+        - POSIG: use observation + agent_id
         """
         p = self.params
         env = self.env
@@ -216,22 +179,12 @@ class MAA2CTrainer:
             observation = th.tensor(observation, dtype=th.float32, device=device).squeeze()
             observations.append(observation)
 
-            if p.rnn:
-                if p.prev_action_input:
-                    prev_a = prev_actions[a].squeeze(0)  # [action_dim]
-                    actor_input = th.cat([observation, agent_id, prev_a], dim=-1)
-                else:
-                    actor_input = th.cat([observation, agent_id], dim=-1)
-
-                logits, h_a = actor_shared(actor_input, hidden_state[a])
-                hidden_state[a] = h_a
-            else:
-                actor_input = th.cat([observation, agent_id], dim=-1)
-                logits = actor_shared(actor_input)
+            actor_input = th.cat([observation, agent_id], dim=-1)
         else:
             # FO PS (NFIG / SIG)
             actor_input = th.cat([global_state, agent_id], dim=-1)
-            logits = actor_shared(actor_input)
+
+        logits = actor_shared(actor_input)
 
         # Action masking
         if p.action_masking:
@@ -240,13 +193,7 @@ class MAA2CTrainer:
         else:
             action, _ = actor_shared.action_sampler(logits)
 
-        # Update prev_actions if RNN + prev_action_input
-        if p.task_type == "POSIG" and p.rnn and p.prev_action_input:
-            prev_actions[a] = F.one_hot(
-                action, num_classes=p.action_dim
-            ).float().unsqueeze(0).to(device)
-
-        return action, hidden_state, prev_actions
+        return action
 
     # ==========================
     #   ACTION SELECTION (NS)
@@ -293,93 +240,7 @@ class MAA2CTrainer:
     #   UPDATE ROUTING
     # ==========================
     def _update_from_batch(self, batch_global_state, batch_observations, batch_joint_actions, batch_rtrns, has_obs):
-        p = self.params
-
-        if (not p.no_sharing) and p.task_type == "POSIG" and p.rnn:
-            self._update_rnn_case(batch_global_state, batch_observations, batch_joint_actions, batch_rtrns)
-        else:
-            self._update_fnn_case(batch_global_state, batch_observations, batch_joint_actions, batch_rtrns, has_obs)
-
-    # ==========================
-    #   RNN UPDATE
-    # ==========================
-    def _update_rnn_case(self, batch_global_state, batch_observations, batch_joint_actions, batch_rtrns):
-        p = self.params
-        b = p.batch_size
-        T = p.n_step_per_episode
-
-        global_seq = batch_global_state.view(b, T, -1)
-        act_seq = batch_joint_actions.view(b, T, p.n_agent)
-        rtrn_seq = batch_rtrns.view(b, T)
-        obs_seq = batch_observations.view(b, T, p.n_agent, -1)
-
-        # Build critic input with optional prev_action
-        if p.prev_action_input:
-            prev_joint_seq = th.zeros(b, T, p.n_agent, p.action_dim, device=device, dtype=th.float32)
-            if T > 1:
-                prev_idx = act_seq[:, :-1, :].long()
-                prev_onehot = F.one_hot(prev_idx, num_classes=p.action_dim).float()
-                prev_joint_seq[:, 1:, :, :] = prev_onehot
-            prev_joint_flat = prev_joint_seq.view(b, T, p.n_agent * p.action_dim)
-            critic_input_seq = th.cat([global_seq, prev_joint_flat], dim=-1)
-        else:
-            critic_input_seq = global_seq
-
-        # Critic update
-        self.opt_critic.zero_grad()
-        h0_critic = th.zeros(1, b, p.critic_hidden_dim, device=device)
-        V_seq, _ = self.critic(critic_input_seq, h0_critic)
-        V_seq = V_seq.squeeze(-1)
-        critic_loss = (rtrn_seq - V_seq).pow(2).mean()
-        critic_loss.backward()
-        self.opt_critic.step()
-
-        # Compute advantages
-        with th.no_grad():
-            V_det, _ = self.critic(critic_input_seq, h0_critic)
-            V_det = V_det.squeeze(-1)
-
-        advantages = rtrn_seq - V_det
-        if p.adv_normalization:
-            advantages = (advantages - advantages.mean()) / advantages.std(unbiased=False).clamp_min(1e-8)
-
-        # Actor update
-        self.opt_actor_shared.zero_grad()
-        total_actor_loss = 0.0
-        h0_actor = th.zeros(1, b, p.actor_hidden_dim, device=device)
-
-        for a in range(p.n_agent):
-            agent_base_seq = obs_seq[:, :, a, :]
-            agent_idx = th.full((b, T), a, dtype=th.long, device=device)
-            agent_id_seq = F.one_hot(agent_idx, num_classes=p.n_agent).float()
-
-            if p.prev_action_input:
-                prev_a_seq = prev_joint_seq[:, :, a, :]
-                actor_input_seq = th.cat([agent_base_seq, agent_id_seq, prev_a_seq], dim=-1)
-            else:
-                actor_input_seq = th.cat([agent_base_seq, agent_id_seq], dim=-1)
-
-            logits_seq, _ = self.actor_shared(actor_input_seq, h0_actor)
-
-            # Action masking
-            if p.action_masking:
-                queue_seq = agent_base_seq[:, :, -1]
-                done_mask = (queue_seq <= 0).unsqueeze(-1)
-                if done_mask.any():
-                    logits_seq = logits_seq.clone()
-                    logits_seq[..., :-1] = logits_seq[..., :-1].masked_fill(done_mask, -1e8)
-
-            dist = Categorical(F.softmax(logits_seq, dim=-1))
-            actions_a = act_seq[:, :, a]
-            logp = dist.log_prob(actions_a)
-            ent = dist.entropy()
-
-            loss_a = -(logp * advantages).mean() - p.tau * ent.mean()
-            total_actor_loss += loss_a
-
-        total_actor_loss = total_actor_loss / p.n_agent
-        total_actor_loss.backward()
-        self.opt_actor_shared.step()
+        self._update_fnn_case(batch_global_state, batch_observations, batch_joint_actions, batch_rtrns, has_obs)
 
     # ==========================
     #   FNN UPDATE

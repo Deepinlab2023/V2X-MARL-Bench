@@ -2,6 +2,7 @@ import torch as th
 import torch.nn.functional as F
 from torch.distributions import Categorical
 
+
 def _mask_logits_with_queue(logits, queue):
     if queue is None:
         return logits
@@ -28,56 +29,32 @@ class A2CSharedActor(th.nn.Module):
     """
     Shared actor (parameter sharing) for IA2C and MAA2C.
 
-    IMPORTANT:
-    - This module expects the trainer to build the input vector.
-    - For FNN:   input = [base, agent_id]
-    - For RNN:   input = [base, agent_id] (+ prev_action if enabled)
+    Input: [base, agent_id]
     """
     def __init__(self, input_dim, params):
         super().__init__()
         self.action_dim = params.action_dim
         self.hidden_dim = params.actor_hidden_dim
-        self.rnn = params.rnn
 
         self.fc1 = th.nn.Linear(input_dim, self.hidden_dim)
-        if self.rnn:
-            self.gru = th.nn.GRU(self.hidden_dim, self.hidden_dim, batch_first=True)
-        else:
-            self.fc2 = th.nn.Linear(self.hidden_dim, self.hidden_dim)
+        self.fc2 = th.nn.Linear(self.hidden_dim, self.hidden_dim)
         self.fc3 = th.nn.Linear(self.hidden_dim, self.action_dim)
 
-    def forward(self, x, hidden_state=None):
+    def forward(self, x):
         single_sample = False
 
         if x.dim() == 1:
             x = x.unsqueeze(0)
             single_sample = True
 
-        if x.dim() == 2:
-            x = F.relu(self.fc1(x))
-            if self.rnn:
-                x = x.unsqueeze(1)
-                x, hidden_state = self.gru(x, hidden_state)
-                x = x.squeeze(1)
-            else:
-                x = F.relu(self.fc2(x))
-            logits = self.fc3(x)
-
-        elif x.dim() == 3:
-            x = F.relu(self.fc1(x))
-            if self.rnn:
-                x, hidden_state = self.gru(x, hidden_state)
-            else:
-                x = F.relu(self.fc2(x))
-            logits = self.fc3(x)
-
-        else:
-            raise ValueError(f"Unexpected actor input shape: {x.shape}")
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        logits = self.fc3(x)
 
         if single_sample:
             logits = logits.squeeze(0)
 
-        return (logits, hidden_state) if self.rnn else logits
+        return logits
 
     def action_sampler(self, logits, queue=None):
         logits = _mask_logits_with_queue(logits, queue)

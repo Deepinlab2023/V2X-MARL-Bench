@@ -25,7 +25,3 @@ class A2Cparameters:
         self.no_sharing = False      # default: FO setting, safe for NFIG/SIG
         self.action_masking = True
         self.adv_normalization = True
-
-        # Partial Observability Toggles
-        self.rnn = False
-        self.prev_action_input = False # Only run this when self.rnn = True

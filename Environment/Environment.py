@@ -1,14 +1,3 @@
-"""
-V2X Resource Allocation Environment for Multi-Agent Reinforcement Learning.
-
-Original work by Dr. Liu Tong
-Revised by Mei Jie, 2023-11-22
-Refactored 2026 Jan 19th
-Refactored 2026 Jan 24th - Removed game_mode, use task_type directly
-Refactored 2026 Jan 28th - Simplified get_state interface, removed dead code,
-                           consolidated parameters to env_params, tx/rx naming
-"""
-
 from __future__ import division
 import numpy as np
 import math

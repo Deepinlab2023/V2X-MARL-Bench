@@ -27,10 +27,6 @@ class A2CHelper:
             tags.append("MASK")
         if getattr(params, "adv_normalization", False):
             tags.append("NORM")
-        if getattr(params, "rnn", False):
-            tags.append("RNN")
-        if getattr(params, "prev_action_input", False):
-            tags.append("PREV")
 
         return "_" + "_".join(tags) if tags else ""
 
@@ -44,27 +40,6 @@ class A2CHelper:
             raise ValueError(
                 f"{algo_name} No-Sharing is not supported for POSIG. "
                 "Set params.no_sharing = False for POSIG experiments."
-            )
-
-        # RNN only supported for POSIG
-        if p.task_type in ["NFIG", "SIG"] and getattr(p, "rnn", False):
-            raise ValueError(
-                f"{algo_name} rnn is only supported for POSIG.\n"
-                f"Current task_type = '{p.task_type}'. Set params.rnn = False for NFIG/SIG."
-            )
-
-        # prev_action_input only supported for POSIG
-        if p.task_type in ["NFIG", "SIG"] and getattr(p, "prev_action_input", False):
-            raise ValueError(
-                f"{algo_name} prev_action_input is only supported for POSIG.\n"
-                f"Current task_type = '{p.task_type}'. Set params.prev_action_input = False for NFIG/SIG."
-            )
-
-        # prev_action_input ONLY allowed when rnn is enabled
-        if getattr(p, "prev_action_input", False) and not getattr(p, "rnn", False):
-            raise ValueError(
-                f"{algo_name} prev_action_input requires rnn=True.\n"
-                "Disable prev_action_input for FNN runs, or enable rnn for POSIG sequence learning."
             )
 
     # ---------- CSV logging / filename construction ----------

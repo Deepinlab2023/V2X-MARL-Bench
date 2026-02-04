@@ -33,13 +33,6 @@ class MAA2Ctester:
         if p.no_sharing and p.task_type == "POSIG":
             raise ValueError("MAA2C No-Sharing is not supported for POSIG testing.")
 
-        # prev_action_input ONLY allowed when rnn is enabled
-        if getattr(p, "prev_action_input", False) and not getattr(p, "rnn", False):
-            raise ValueError(
-                "MAA2Ctester: prev_action_input requires rnn=True. "
-                "Disable prev_action_input for FNN testing runs."
-            )
-
     # ==========================
     #   MAIN TEST LOOP
     # ==========================
@@ -61,9 +54,6 @@ class MAA2Ctester:
         env = self.env
 
         total_rewards = 0.0
-
-        # POSIG PS-only RNN / prev-action init
-        hidden_state, prev_actions = self._init_posig_states()
 
         # Load test veh data
         test_data = p.test_data_list[idx % len(p.test_data_list)]
@@ -89,13 +79,7 @@ class MAA2Ctester:
                 if p.no_sharing:
                     action = self._select_action_ns(a, global_state)
                 else:
-                    action, hidden_state, prev_actions = self._select_action_ps(
-                        a,
-                        global_state,
-                        hidden_state,
-                        prev_actions,
-                        t,
-                    )
+                    action = self._select_action_ps(a, global_state, t)
 
                 sc_idx, power_idx = env.map_action_to_rra(action, agent_idx=a)
                 RRA_all_agents[a, 0, 0] = sc_idx
@@ -108,40 +92,13 @@ class MAA2Ctester:
         return total_rewards
 
     # ==========================
-    #   POSIG STATE INIT
-    # ==========================
-    def _init_posig_states(self):
-        p = self.params
-
-        # Only valid for PS + POSIG + RNN
-        if not ((not p.no_sharing) and p.task_type == "POSIG" and p.rnn):
-            return None, None
-
-        hidden_state = [
-            th.zeros(1, 1, p.actor_hidden_dim, device=device)
-            for _ in range(p.n_agent)
-        ]
-
-        if p.prev_action_input:
-            prev_actions = [
-                th.zeros(1, p.action_dim, device=device)
-                for _ in range(p.n_agent)
-            ]
-        else:
-            prev_actions = None
-
-        return hidden_state, prev_actions
-
-    # ==========================
     #   ACTION SELECTION (PS)
     # ==========================
-    def _select_action_ps(self, a, global_state, hidden_state, prev_actions, t):
+    def _select_action_ps(self, a, global_state, t):
         """
         Parameter sharing case:
         - FO (NFIG/SIG): use global_state + agent_id
-        - POSIG:
-            - if rnn=False: observation + agent_id
-            - if rnn=True : observation + agent_id (+ prev_action if enabled)
+        - POSIG: use observation + agent_id
         """
         p = self.params
         env = self.env
@@ -155,23 +112,12 @@ class MAA2Ctester:
         if p.task_type == "POSIG":
             observation = env.get_state(a, t)
             observation = th.tensor(observation, dtype=th.float32, device=device).squeeze()
-
-            # prev_action only when rnn=True AND prev_action_input=True
-            if p.rnn and p.prev_action_input:
-                prev_action_a = prev_actions[a].squeeze(0)  # [action_dim]
-                actor_input = th.cat([observation, agent_id, prev_action_a], dim=-1)
-            else:
-                actor_input = th.cat([observation, agent_id], dim=-1)
-
-            if p.rnn:
-                logits, h_a = actor_shared(actor_input, hidden_state[a])
-                hidden_state[a] = h_a
-            else:
-                logits = actor_shared(actor_input)
+            actor_input = th.cat([observation, agent_id], dim=-1)
         else:
             # FO PS (NFIG / SIG)
             actor_input = th.cat([global_state, agent_id], dim=-1)
-            logits = actor_shared(actor_input)
+
+        logits = actor_shared(actor_input)
 
         # Action masking
         if p.action_masking:
@@ -180,14 +126,7 @@ class MAA2Ctester:
         else:
             action, _ = actor_shared.action_sampler(logits)
 
-        # Update prev_actions if used
-        if p.task_type == "POSIG" and p.rnn and p.prev_action_input:
-            one_hot_prev = th.nn.functional.one_hot(
-                action, num_classes=p.action_dim
-            ).float().unsqueeze(0).to(device)
-            prev_actions[a] = one_hot_prev
-
-        return action, hidden_state, prev_actions
+        return action
 
     # ==========================
     #   ACTION SELECTION (NS)

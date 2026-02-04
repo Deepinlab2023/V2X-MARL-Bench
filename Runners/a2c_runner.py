@@ -3,6 +3,7 @@ from Configuration.a2c_params import A2Cparameters
 
 from Trainers.ia2c_trainer import IA2CTrainer
 from Trainers.maa2c_trainer import MAA2CTrainer
+from Environment.environment_utility import calculate_max_mean_and_ci
 
 
 class A2Crunner:
@@ -79,5 +80,9 @@ class A2Crunner:
             train_rewards, test_rewards = trainer_fn(params)
             test_rewards_n_trials.append(test_rewards)
 
-        # if you ever want them:
-        # return test_rewards_n_trials
+        print(self.task_type)
+        print("test_rewards_n_trails: ", test_rewards_n_trials)
+        max_mean, max_mean_ci, mean_over_time, ci_over_time = calculate_max_mean_and_ci(test_rewards_n_trials)
+        print(f"Max Mean: {max_mean}, Confidence Interval: ±{max_mean_ci}")
+        print(f"Mean over time: {mean_over_time.tolist()}")
+        print(f"Confidence Interval over time: {ci_over_time.tolist()}")

@@ -63,10 +63,8 @@ class IA2CTrainer:
                 base_actor_dim = p.state_dim
                 base_critic_dim = p.state_dim
 
-            # Shared actor input: base + agent_id (+ prev_action only for RNN runs)
+            # Shared actor input: base + agent_id
             actor_input_dim = base_actor_dim + p.n_agent
-            if p.prev_action_input:  # helper guarantees: only if rnn=True
-                actor_input_dim += p.action_dim
 
             actor_shared = A2CSharedActor(actor_input_dim, p).to(device)
             critic_shared = A2CSharedCritic(base_critic_dim, p).to(device)
@@ -105,23 +103,6 @@ class IA2CTrainer:
         buffer = []
         done = False
 
-        # Only maintain hidden_state/prev_actions for POSIG + PS + RNN
-        if (not p.no_sharing) and p.task_type == "POSIG" and p.rnn:
-            hidden_state = [
-                th.zeros(1, 1, p.actor_hidden_dim, device=device)
-                for _ in range(p.n_agent)
-            ]
-            if p.prev_action_input:
-                prev_actions = [
-                    th.zeros(1, p.action_dim, device=device)
-                    for _ in range(p.n_agent)
-                ]
-            else:
-                prev_actions = None
-        else:
-            hidden_state = None
-            prev_actions = None
-
         num_control_interval = A2CHelper.num_control_intervals(p)
         sampled_data = A2CHelper.sample_veh_positions(p)
 
@@ -155,8 +136,6 @@ class IA2CTrainer:
                             a=a,
                             global_state=global_state,
                             observations=observations,
-                            hidden_state=hidden_state,
-                            prev_actions=prev_actions,
                             t=t,
                         )
                     else:
@@ -183,7 +162,7 @@ class IA2CTrainer:
         rtrns = A2CHelper.compute_returns_from_buffer(buffer, done, p.gamma)
         return buffer, rtrns, total_rewards
 
-    def _select_action_ps(self, a, global_state, observations, hidden_state, prev_actions, t):
+    def _select_action_ps(self, a, global_state, observations, t):
         p = self.params
         actor_shared = self.actor_shared
 
@@ -194,20 +173,8 @@ class IA2CTrainer:
             observation = th.tensor(observation, dtype=th.float32, device=device).squeeze()
             observations.append(observation)
 
-            if p.rnn:
-                if p.prev_action_input:
-                    prev_a = prev_actions[a].squeeze(0)
-                    actor_input = th.cat([observation, agent_id, prev_a], dim=-1)
-                else:
-                    actor_input = th.cat([observation, agent_id], dim=-1)
-
-                logits, h_a = actor_shared(actor_input, hidden_state[a])
-                hidden_state[a] = h_a
-
-            else:
-                actor_input = th.cat([observation, agent_id], dim=-1)
-                logits = actor_shared(actor_input)
-
+            actor_input = th.cat([observation, agent_id], dim=-1)
+            logits = actor_shared(actor_input)
         else:
             actor_input = th.cat([global_state, agent_id], dim=-1)
             logits = actor_shared(actor_input)
@@ -217,10 +184,6 @@ class IA2CTrainer:
             action, _ = actor_shared.action_sampler(logits, queue_a)
         else:
             action, _ = actor_shared.action_sampler(logits)
-
-        # Only update prev_actions in RNN mode
-        if p.task_type == "POSIG" and p.rnn and p.prev_action_input:
-            prev_actions[a] = F.one_hot(action, num_classes=p.action_dim).float().unsqueeze(0).to(device)
 
         return action
 
@@ -261,103 +224,7 @@ class IA2CTrainer:
     #  Update routing
     # ----------------------------------------------------- #
     def _update_from_batch(self, batch_global_state, batch_observations, batch_joint_actions, batch_rtrns, has_obs):
-        p = self.params
-        if (not p.no_sharing) and p.task_type == "POSIG" and p.rnn:
-            self._update_rnn_case(batch_observations, batch_joint_actions, batch_rtrns)
-        else:
-            self._update_fnn_case(batch_global_state, batch_observations, batch_joint_actions, batch_rtrns, has_obs)
-
-    # ----------------------------------------------------- #
-    #  RNN case
-    # ----------------------------------------------------- #
-    def _update_rnn_case(self, batch_observations, batch_joint_actions, batch_rtrns):
-        p = self.params
-        b = p.batch_size
-        T = p.n_step_per_episode
-
-        act_seq = batch_joint_actions.view(b, T, p.n_agent)         # [b, T, A]
-        rtrn_seq = batch_rtrns.view(b, T)                              # [b, T]
-        obs_seq = batch_observations.view(b, T, p.n_agent, -1)      # [b, T, A, obs_dim]
-
-        # ----- critic update -----
-        self.opt_critic_shared.zero_grad()
-        V_seq_detached = []
-        total_critic_loss = 0.0
-
-        for a in range(p.n_agent):
-            agent_obs_seq = obs_seq[:, :, a, :]  # [b, T, obs_dim]
-            agent_indices = th.full((b, T), a, dtype=th.long, device=device)
-            agent_id_seq = F.one_hot(agent_indices, num_classes=p.n_agent).float()
-
-            if p.prev_action_input:
-                prev_a_seq = th.zeros(b, T, p.action_dim, device=device, dtype=th.float32)
-                if T > 1:
-                    prev_idx = act_seq[:, :-1, a].long()
-                    prev_onehot = F.one_hot(prev_idx, num_classes=p.action_dim).float()
-                    prev_a_seq[:, 1:, :] = prev_onehot
-                critic_input_seq = th.cat([agent_obs_seq, agent_id_seq, prev_a_seq], dim=-1)
-            else:
-                critic_input_seq = th.cat([agent_obs_seq, agent_id_seq], dim=-1)
-
-            h0_c = th.zeros(1, b, p.critic_hidden_dim, device=device)
-            V_seq_a, _ = self.critic_shared(critic_input_seq, h0_c)  # [b, T, 1]
-            V_seq_a = V_seq_a.squeeze(-1)
-
-            critic_loss_a = (rtrn_seq - V_seq_a).pow(2).mean()
-            total_critic_loss += critic_loss_a
-            V_seq_detached.append(V_seq_a.detach())
-
-        total_critic_loss = total_critic_loss / p.n_agent
-        total_critic_loss.backward()
-        self.opt_critic_shared.step()
-
-        # ----- actor update -----
-        self.opt_actor_shared.zero_grad()
-        total_actor_loss = 0.0
-
-        for a in range(p.n_agent):
-            agent_obs_seq = obs_seq[:, :, a, :]
-            agent_indices = th.full((b, T), a, dtype=th.long, device=device)
-            agent_id_seq = F.one_hot(agent_indices, num_classes=p.n_agent).float()
-
-            if p.prev_action_input:
-                prev_a_seq = th.zeros(b, T, p.action_dim, device=device, dtype=th.float32)
-                if T > 1:
-                    prev_idx = act_seq[:, :-1, a].long()
-                    prev_onehot = F.one_hot(prev_idx, num_classes=p.action_dim).float()
-                    prev_a_seq[:, 1:, :] = prev_onehot
-                actor_input_seq = th.cat([agent_obs_seq, agent_id_seq, prev_a_seq], dim=-1)
-            else:
-                actor_input_seq = th.cat([agent_obs_seq, agent_id_seq], dim=-1)
-
-            h0_a = th.zeros(1, b, p.actor_hidden_dim, device=device)
-            logits_seq, _ = self.actor_shared(actor_input_seq, h0_a)  # [b, T, act_dim]
-
-            if p.action_masking:
-                queue_seq = agent_obs_seq[:, :, -1]
-                done_mask = (queue_seq <= 0).unsqueeze(-1)
-                if done_mask.any():
-                    logits_seq = logits_seq.clone()
-                    logits_seq[..., :-1] = logits_seq[..., :-1].masked_fill(done_mask, -1e8)
-
-            dist = Categorical(F.softmax(logits_seq, dim=-1))
-            actions_a_seq = act_seq[:, :, a]
-            log_probs = dist.log_prob(actions_a_seq)
-            entropies = dist.entropy()
-
-            advantages_a = (rtrn_seq - V_seq_detached[a])
-
-            if p.adv_normalization:
-                adv_mean = advantages_a.mean()
-                adv_std = advantages_a.std(unbiased=False)
-                advantages_a = (advantages_a - adv_mean) / adv_std.clamp_min(1e-8)
-
-            actor_loss_a = -(log_probs * advantages_a).mean() - p.tau * entropies.mean()
-            total_actor_loss += actor_loss_a
-
-        total_actor_loss = total_actor_loss / p.n_agent
-        total_actor_loss.backward()
-        self.opt_actor_shared.step()
+        self._update_fnn_case(batch_global_state, batch_observations, batch_joint_actions, batch_rtrns, has_obs)
 
     # ----------------------------------------------------- #
     #  FNN case
