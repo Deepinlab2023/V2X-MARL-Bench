@@ -30,6 +30,5 @@ class MAPPOparameters:
 
         # Partial Observability Toggles
         self.feature_pruning = True
-        self.rnn = False
         self.prev_action_input = False
         self.individual_rewards = False
