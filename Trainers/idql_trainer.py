@@ -6,8 +6,10 @@ import os
 
 from Networks.Agents.idql_agent import DQNAgent
 from Helpers.plotting_helper import plot_test_returns
+from Helpers.stat_helper import *
 from Benchmarkers.idql_test import *
 from Environment.environment_utility import *
+
 
 device = th.device("cuda:0" if th.cuda.is_available() else "cpu")
 
@@ -77,6 +79,33 @@ class IDQLtrainerNS:
         joint_action_over_te = []
 
         train_data = env_params.train_data
+
+
+        # env.new_random_game()
+
+        # all_location_returns, avg_random_return = compute_random_baseline(
+        #     env, 
+        #     test_data_list, 
+        #     num_trials_per_location=10
+        # )
+
+
+        # greedy_returns, avg_greedy_return = compute_greedy_baseline(
+        #     env, 
+        #     test_data_list, 
+        #     num_trials_per_location=1,
+        #     top_k_per_agent=5,
+        #     local_search_passes=1,
+        # )
+
+
+        # exhaustive_returns, avg_exhaustive_return = compute_exhaustive_baseline(
+        #     env, 
+        #     test_data_list, 
+        #     num_trials_per_location=1,
+        #     print_per_step=False,  # Set True for detailed output
+        # )
+
 
 
         # === Main Training Loop ===
