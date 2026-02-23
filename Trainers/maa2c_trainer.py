@@ -3,7 +3,7 @@ import torch as th
 import torch.nn.functional as F
 from torch.distributions import Categorical
 
-from Networks.Actors.a2c_actor import A2CSharedActor, A2CActorNS
+from Networks.Agents.a2c_actor import A2CSharedActor, A2CActorNS
 from Networks.Critics.a2c_critic import A2CCentralizedCritic
 from Helpers.a2c_helper import A2CHelper
 from Benchmarkers.maa2c_test import MAA2Ctester

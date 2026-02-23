@@ -7,10 +7,8 @@ from Configuration.env_params import V2XParams
 from Environment.environment import Environ
 from Environment.environment_utility import *
 
-# # Import Runners
-from Runners.a2c_runner import A2Crunner
-from Runners.ippo_runner import IPPOrunner
-from Runners.mappo_runner import MAPPOrunner
+# Import Runners
+from Runners.policy_gradient_runner import PolicyGradientRunner
 
 from Runners.idql_runner import IDQLrunner
 from Runners.qmix_runner import QMIXrunner
@@ -152,14 +150,8 @@ def main():
         if args.env:  # NFIG, SIG, POSIG Game check
             # Create the runner
             # More runners can be added here
-            if args.algo == 'ia2c':
-                runner = A2Crunner(env, args.env, env_params, algo="ia2c")
-            elif args.algo == 'ippo':
-                runner = IPPOrunner(env, args.env, env_params)
-            elif args.algo == 'maa2c':
-                runner = A2Crunner(env, args.env, env_params, algo="maa2c")
-            elif args.algo == 'mappo':
-                runner = MAPPOrunner(env, args.env, env_params)
+            if args.algo in ("ia2c", "maa2c", "ippo", "mappo"):
+                runner = PolicyGradientRunner(env, args.env, env_params, algo=args.algo)
             elif args.algo == 'idql':
                 runner = IDQLrunner(env, args.env, env_params, False)
             elif args.algo == 'hys':

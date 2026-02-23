@@ -1,10 +1,88 @@
+import csv
+import numpy as np
 import torch as th
+from typing import Optional, Tuple, Union
+
+from Environment.environment_utility import (
+    sample_veh_position_from_timestep,
+    random_sample,
+)
 
 device = th.device("cuda" if th.cuda.is_available() else "cpu")
 
 
-class Helper:
+class PPOHelper:
+    """
+    Shared helper for MAPPO and IPPO.
 
+    This consolidates:
+      - MAPPO Helper + BatchProcessing + ValueNormalizer
+      - IPPO Helper + BatchProcessing + ValueNormalizer
+      - Trainer-shared utilities (CSV naming, veh sampling, test finalize, returns norm)
+
+    Notes:
+      - MAPPO-specific feature-pruning utilities are included (overlap indices + fp-state creation).
+      - GAE variants:
+          * compute_gae_single: scalar advantages/returns (MAPPO centralized critic case)
+          * compute_gae_agent_specific: per-agent advantages with scalar returns (MAPPO FP case)
+          * compute_gae_ippo: per-agent advantages with scalar returns (IPPO case)
+    """
+
+    # -------------------------
+    # File naming / logging
+    # -------------------------
+    @staticmethod
+    def init_csv_logging(params, algo_name: str):
+        env = params.env
+        task_type = params.task_type
+        n_agent = params.n_agent
+        n_sc = params.n_sc
+        ff_on = getattr(params, "fast_fading_enabled", getattr(env, "fast_fading_enabled", False))
+
+        if task_type == "NFIG":
+            loc_tag = "none" if params.loc is None else int(params.loc)
+            csv_name = f"{algo_name}_trial_{params.trial_run}_NFIG{int(n_agent)}{int(n_sc)}_{loc_tag}.csv"
+
+        elif task_type == "SIG":
+            if params.loc is None:
+                csv_name = f"{algo_name}_trial_{params.trial_run}_SIG{int(n_agent)}{int(n_sc)}_ML_{ff_on}.csv"
+            else:
+                csv_name = f"{algo_name}_trial_{params.trial_run}_SIG{int(n_agent)}{int(n_sc)}_SL_{ff_on}_{params.loc}.csv"
+
+        elif task_type == "POSIG":
+            if params.loc is None:
+                csv_name = f"{algo_name}_trial_{params.trial_run}_POSIG{int(n_agent)}{int(n_sc)}_ML_{ff_on}.csv"
+            else:
+                csv_name = f"{algo_name}_trial_{params.trial_run}_POSIG{int(n_agent)}{int(n_sc)}_SL_{ff_on}_{params.loc}.csv"
+
+        else:
+            csv_name = f"{algo_name}_trial_{params.trial_run}_{task_type}.csv"
+
+        csv_file = open(csv_name, "a", newline="")
+        csv_writer = csv.writer(csv_file)
+        return csv_file, csv_writer
+
+    # -------------------------
+    # Episode sampling
+    # -------------------------
+    @staticmethod
+    def sample_episode_data(params):
+        task_type = params.task_type
+
+        if task_type == "NFIG" and params.loc is not None:
+            return sample_veh_position_from_timestep(params.train_data, params.loc)
+
+        if task_type in ("SIG", "POSIG") and params.loc is None:
+            return random_sample(1, params.train_data)
+
+        if task_type in ("SIG", "POSIG") and params.loc is not None:
+            return sample_veh_position_from_timestep(params.train_data, params.loc)
+
+        return params.train_data
+
+    # -------------------------
+    # PPO objective pieces
+    # -------------------------
     @staticmethod
     def actor_loss_fn(log_probs, old_log_probs, advantages, clip_param):
         ratio = th.exp(log_probs - old_log_probs)
@@ -24,7 +102,7 @@ class Helper:
             value_clip = normalized_old + th.clamp(
                 normalized_values - normalized_old,
                 -clip_param,
-                clip_param
+                clip_param,
             )
 
             loss_unclipped = (normalized_values - returns).pow(2)
@@ -37,25 +115,19 @@ class Helper:
 
         return th.max(loss_unclipped, loss_clipped).mean()
 
+    # -------------------------
+    # GAE variants
+    # -------------------------
     @staticmethod
-    def compute_GAE_single(rewards, values, dones, gamma, lam):
+    def compute_gae_single(rewards, values, dones, gamma, lam):
         """
-        Compute GAE for centralized critic (single value per timestep).
-
-        Args:
-            rewards: list[float] of length T
-            values: list[Tensor] of length T, each tensor is scalar
-            dones: list[bool] of length T
-            gamma: discount factor
-            lam: GAE lambda
-
+        MAPPO centralized critic: one scalar value per timestep.
         Returns:
-            returns: Tensor[T] - scalar return per timestep
-            advantages: Tensor[T] - scalar advantages
+            returns: [T]
+            advantages: [T]
         """
         T = len(rewards)
 
-        # Convert values to tensor
         v = th.stack([vv.squeeze() for vv in values], dim=0).to(device)  # [T]
         v = th.cat([v, th.zeros(1, dtype=th.float32, device=device)], dim=0)  # [T+1]
 
@@ -80,27 +152,18 @@ class Helper:
         return returns, advantages
 
     @staticmethod
-    def compute_GAE_AS(global_rewards, values, dones, gamma, lam):
+    def compute_gae_agent_specific(global_rewards, values, dones, gamma, lam):
         """
-        Compute GAE for agent-specific values (feature pruning case).
-
-        Args:
-            global_rewards: list[float] of length T (global rewards)
-            values: list[Tensor[n_agent]] of length T (per-agent values)
-            dones: list[bool] of length T
-            gamma: discount factor
-            lam: GAE lambda
-
+        MAPPO feature pruning: values are per-agent; returns remain scalar.
         Returns:
-            returns: Tensor[T] - scalar return per timestep
-            advantages: Tensor[T, n_agent] - per-agent advantages
+            returns: [T]
+            advantages: [T, A]
         """
         T = len(global_rewards)
         n_agent = values[0].shape[0]
 
         d = th.tensor(dones, dtype=th.float32, device=device)
 
-        # Bootstrap value at T: per-agent zeros
         values = values + [th.zeros_like(values[0])]
 
         gae = th.zeros(n_agent, dtype=th.float32, device=device)
@@ -116,22 +179,76 @@ class Helper:
 
             non_terminal = 1.0 - d[t]
 
-            # Per-agent TD error
             delta = r_t + gamma * values[t + 1] * non_terminal - values[t]
-
-            # Per-agent GAE
             gae = delta + gamma * lam * non_terminal * gae
             advantages.insert(0, gae.clone())
 
-            # Scalar return recursion
             R = r_t + gamma * R * non_terminal
             returns.insert(0, R.clone())
 
-        advantages = th.stack(advantages, dim=0)  # [T, n_agent]
+        advantages = th.stack(advantages, dim=0)  # [T, A]
         returns = th.stack(returns, dim=0)        # [T]
 
         return returns, advantages
 
+    @staticmethod
+    def compute_gae_ippo(rewards, values, dones, gamma, lam):
+        """
+        IPPO: values are per-agent; returns are scalar.
+        Returns:
+            returns: [T]
+            advantages: [T, A]
+        """
+        T = len(rewards)
+        num_agents = len(values[0]) if hasattr(values[0], "__len__") else values[0].numel()
+
+        advantages = [[0.0] * num_agents for _ in range(T)]
+        returns = [0.0] * T
+
+        values_list = []
+        for v in values:
+            if th.is_tensor(v):
+                values_list.append(v.detach().cpu().tolist() if v.dim() > 0 else [v.item()])
+            else:
+                values_list.append(list(v))
+        values_list.append([0.0] * num_agents)
+
+        gae = [0.0] * num_agents
+        R = 0.0
+
+        for t in reversed(range(T)):
+            mask = 1.0 - float(dones[t])
+            r_t = float(rewards[t])
+
+            R = r_t + gamma * R * mask
+            returns[t] = R
+
+            for a in range(num_agents):
+                delta = r_t + gamma * values_list[t + 1][a] * mask - values_list[t][a]
+                gae[a] = delta + gamma * lam * mask * gae[a]
+                advantages[t][a] = gae[a]
+
+        returns = th.tensor(returns, dtype=th.float32, device=device)
+        advantages = th.tensor(advantages, dtype=th.float32, device=device)
+        return returns, advantages
+
+    # -------------------------
+    # Returns normalization
+    # -------------------------
+    @staticmethod
+    def normalize_returns(batch_returns, popart: bool, value_normalizer):
+        if popart and value_normalizer is not None:
+            value_normalizer.update(batch_returns.view(-1))
+            batch_returns = value_normalizer.normalize(batch_returns)
+        else:
+            rtrn_mean = batch_returns.mean()
+            rtrn_std = batch_returns.std(unbiased=False)
+            batch_returns = (batch_returns - rtrn_mean) / rtrn_std.clamp_min(1e-8)
+        return batch_returns
+
+    # -------------------------
+    # MAPPO feature pruning utilities
+    # -------------------------
     @staticmethod
     def find_overlapping_indices(global_state,
                                  observation,
@@ -141,47 +258,21 @@ class Helper:
                                  subchannels: int,
                                  n_neighbor: int = 1,
                                  dest_idx: int = 0):
-        """
-        Return indices in the GLOBAL state that correspond to info already present
-        in the LOCAL observation of agent `agent_idx`.
-
-        New Global State layout (_get_state_SIG):
-            [t_enc, g_i, g_ji, g_m, g_bi, g_ib, i_prev, queue]
-            Sizes: [T, A, A*(A-1), M, A*M, A, A*M, A]
-
-        New POSIG Observation layout (_get_state_POSIG):
-            [t_enc, G_i, G_iB, I_prev, queue]
-            Sizes: [T, 1, 1, M, 1]
-
-        This function auto-detects T from the observation length.
-        """
         A = n_agent
         M = subchannels
 
         g_len = int(global_state.numel())
         o_len = int(observation.numel())
 
-        # Auto-detect T from observation length
-        # Observation: T + 1 + 1 + M + 1 = T + M + 3
-        # So: T = o_len - M - 3
         T = o_len - M - 3
-
         if T <= 0:
             raise ValueError(
                 f"Cannot determine valid T from observation length: {o_len}. "
                 f"With M={M}: expected o_len > {M + 3}"
             )
 
-        # Verify against global state length
-        # Global: T + A + A*(A-1) + M + A*M + A + A*M + A
-        #       = T + A + A^2 - A + M + A*M + A + A*M + A
-        #       = T + 2*A + A^2 - A + M + 2*A*M
-        #       = T + A + A^2 + M + 2*A*M
-        #       = T + A*(1 + A + 2*M) + M
         expected_g_len = T + A + A * (A - 1) + M + A * M + A + A * M + A
-        
         if g_len != expected_g_len:
-            # Try with normalized timestep (T=1)
             T_norm = 1
             expected_g_len_norm = T_norm + A + A * (A - 1) + M + A * M + A + A * M + A
             if g_len == expected_g_len_norm:
@@ -192,8 +283,6 @@ class Helper:
                     f"(with T={T}, A={A}, M={M}) or {expected_g_len_norm} (with T=1)"
                 )
 
-        # Compute global block starts
-        # [t_enc, g_i, g_ji, g_m, g_bi, g_ib, i_prev, queue]
         t_start = 0
         gi_start = T
         gji_start = gi_start + A
@@ -203,23 +292,11 @@ class Helper:
         iprev_start = gib_start + A
         q_start = iprev_start + A * M
 
-        # Overlap indices - what's in observation that's also in global state
-        # Observation: [t_enc, G_i(agent), G_iB(agent), I_prev(agent,:), queue(agent)]
         overlapping = []
-
-        # 1) t-block (all T timestep values)
         overlapping.extend(range(t_start, t_start + T))
-
-        # 2) G_i for this agent
         overlapping.append(gi_start + agent_idx)
-
-        # 3) G_iB for this agent
         overlapping.append(gib_start + agent_idx)
-
-        # 4) I_prev for this agent (M subchannels)
         overlapping.extend(range(iprev_start + agent_idx * M, iprev_start + (agent_idx + 1) * M))
-
-        # 5) queue for this agent
         overlapping.append(q_start + agent_idx)
 
         overlapping = sorted(set(overlapping))
@@ -233,11 +310,10 @@ class Helper:
 
     @staticmethod
     def create_fp_state(global_state, observation, agent_idx, agent_id, timesteps, n_agent, subchannels):
-        """Create feature-pruned state for centralized critic."""
         g = global_state if global_state.dim() == 1 else global_state.view(-1)
         obs = observation if observation.dim() == 1 else observation.view(-1)
 
-        overlapping_indices = Helper.find_overlapping_indices(
+        overlapping_indices = PPOHelper.find_overlapping_indices(
             g, obs, agent_idx, timesteps, n_agent, subchannels
         )
 
@@ -249,17 +325,21 @@ class Helper:
         return fp_state
 
 
-class BatchProcessing:
+class PPOBatchProcessing:
+    """
+    Unified batch collation for MAPPO and IPPO.
 
-    def collate_batch(self, buffer, task_type, feature_pruning=False):
-        """
-        Collate episodes in buffer into batched tensors.
+    For MAPPO:
+      - FO: buffer items are (global_state_hist, joint_action_hist, log_prob_hist, value_hist, returns, advantages)
+      - POSIG non-FP: (global_state_hist, observation_hist, joint_action_hist, log_prob_hist, value_hist, returns, advantages)
+      - POSIG FP: (global_state_hist(fp_states), observation_hist, joint_action_hist, log_prob_hist, value_hist(per-agent), returns, advantages(per-agent))
 
-        For POSIG: includes observations
-        For others: global states only
+    For IPPO:
+      - buffer items are (states_hist, joint_action_hist, log_prob_hist, value_hist, returns, advantages)
+        where states_hist is obs_history for POSIG, otherwise global_state_history.
+    """
 
-        Returns vary based on task_type.
-        """
+    def collate_mappo_batch(self, buffer, task_type, feature_pruning=False):
         if task_type == "POSIG":
             batch_observations = []
         batch_global_states = []
@@ -276,12 +356,12 @@ class BatchProcessing:
                 batch_observations.append(observations_tensor)
 
                 if feature_pruning:
-                    values_tensor = th.stack(values).detach()  # [T, n_agent]
+                    values_tensor = th.stack(values).detach()
                 else:
-                    values_tensor = th.stack([v.squeeze() for v in values], dim=0).detach()  # [T]
+                    values_tensor = th.stack([v.squeeze() for v in values], dim=0).detach()
             else:
                 global_state, joint_action, log_probs, values, rtrn, advantages = data
-                values_tensor = th.stack([v.squeeze() for v in values], dim=0).detach()  # [T]
+                values_tensor = th.stack([v.squeeze() for v in values], dim=0).detach()
 
             global_state_tensor = th.stack(global_state).detach()
             joint_action_tensor = th.tensor(joint_action, dtype=th.long)
@@ -295,7 +375,6 @@ class BatchProcessing:
             batch_returns.append(rtrn)
             batch_advantages.append(advantages)
 
-        # Concatenate across episodes
         batch_global_states = th.cat(batch_global_states, dim=0)
         batch_joint_actions = th.cat(batch_joint_actions, dim=0)
         batch_log_probs = th.cat(batch_log_probs, dim=0)
@@ -305,11 +384,71 @@ class BatchProcessing:
 
         if task_type == "POSIG":
             batch_observations = th.cat(batch_observations, dim=0)
-            return (batch_global_states, batch_observations, batch_joint_actions,
-                    batch_log_probs, batch_values, batch_returns, batch_advantages)
-        else:
-            return (batch_global_states, batch_joint_actions, batch_log_probs,
-                    batch_values, batch_returns, batch_advantages)
+            return (
+                batch_global_states,
+                batch_observations,
+                batch_joint_actions,
+                batch_log_probs,
+                batch_values,
+                batch_returns,
+                batch_advantages,
+            )
+
+        return (
+            batch_global_states,
+            batch_joint_actions,
+            batch_log_probs,
+            batch_values,
+            batch_returns,
+            batch_advantages,
+        )
+
+    def collate_ippo_batch(self, buffer, task_type):
+        batch_states = []
+        batch_joint_actions = []
+        batch_log_probs = []
+        batch_values = []
+        batch_returns = []
+        batch_advantages = []
+
+        for data in buffer:
+            states, joint_actions, log_probs, values, rtrn, advantages = data
+
+            if task_type == "POSIG":
+                states_tensor = th.stack(states, dim=0).to(device)
+            else:
+                states_tensor = th.stack(states, dim=0).to(device)
+
+            if isinstance(joint_actions[0], th.Tensor):
+                joint_actions_tensor = th.stack(joint_actions, dim=0).to(device)
+            else:
+                joint_actions_tensor = th.tensor(joint_actions, dtype=th.long, device=device)
+
+            log_probs_tensor = th.stack(log_probs, dim=0).to(device)
+            values_tensor = th.stack(values, dim=0).to(device)
+
+            batch_states.append(states_tensor)
+            batch_joint_actions.append(joint_actions_tensor)
+            batch_log_probs.append(log_probs_tensor)
+            batch_values.append(values_tensor)
+            batch_returns.append(rtrn.to(device))
+            batch_advantages.append(advantages.to(device))
+
+        batch_states = th.cat(batch_states, dim=0)
+        batch_joint_actions = th.cat(batch_joint_actions, dim=0)
+        batch_log_probs = th.cat(batch_log_probs, dim=0)
+        batch_values = th.cat(batch_values, dim=0)
+        batch_returns = th.cat(batch_returns, dim=0)
+        batch_advantages = th.cat(batch_advantages, dim=0)
+
+        return (
+            batch_states,
+            batch_joint_actions,
+            batch_log_probs,
+            batch_values,
+            batch_returns,
+            batch_advantages,
+        )
 
 
 class ValueNormalizer:
