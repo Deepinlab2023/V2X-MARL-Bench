@@ -86,15 +86,18 @@ class MAPPO_TrainerPS:
         if task_type == "POSIG" and self.feature_pruning:
             actor_shared = PPOSharedActor(p.observation_dim, p.action_dim, p.actor_hidden_dim, n_agent).to(device)
             fp_critic_dim = p.global_state_dim + n_agent
-            centralized_critic = PPOCentralizedCritic(fp_critic_dim, p.critic_hidden_dim, p.value_dim).to(device)
+            # centralized_critic = PPOCentralizedCritic(fp_critic_dim, p.critic_hidden_dim, p.value_dim).to(device)
+            centralized_critic = PPOCentralizedCritic(fp_critic_dim, p).to(device)
 
         elif task_type == "POSIG" and (not self.feature_pruning):
             actor_shared = PPOSharedActor(p.observation_dim, p.action_dim, p.actor_hidden_dim, n_agent).to(device)
-            centralized_critic = PPOCentralizedCritic(p.global_state_dim, p.critic_hidden_dim, p.value_dim).to(device)
+            # centralized_critic = PPOCentralizedCritic(p.global_state_dim, p.critic_hidden_dim, p.value_dim).to(device)
+            centralized_critic = PPOCentralizedCritic(p.global_state_dim, p).to(device)
 
         else:
             actor_shared = PPOSharedActor(p.state_dim, p.action_dim, p.actor_hidden_dim, n_agent).to(device)
-            centralized_critic = PPOCentralizedCritic(p.state_dim, p.critic_hidden_dim, p.value_dim).to(device)
+            # centralized_critic = PPOCentralizedCritic(p.state_dim, p.critic_hidden_dim, p.value_dim).to(device)
+            centralized_critic = PPOCentralizedCritic(p.state_dim, p).to(device)
 
         value_normalizer = None
         if p.popart:

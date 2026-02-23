@@ -81,10 +81,12 @@ class IPPO_TrainerPS:
 
         if self.task_type == "POSIG":
             actor_shared = PPOSharedActor(p.observation_dim, p.action_dim, p.actor_hidden_dim, n_agent).to(device)
-            critic_shared = PPOSharedCritic(p.observation_dim, p.critic_hidden_dim, p.value_dim, n_agent).to(device)
+            # critic_shared = PPOSharedCritic(p.observation_dim, p.critic_hidden_dim, p.value_dim, n_agent).to(device)
+            critic_shared = PPOSharedCritic(p.observation_dim, p).to(device)
         else:
             actor_shared = PPOSharedActor(p.state_dim, p.action_dim, p.actor_hidden_dim, n_agent).to(device)
-            critic_shared = PPOSharedCritic(p.state_dim, p.critic_hidden_dim, p.value_dim, n_agent).to(device)
+            # critic_shared = PPOSharedCritic(p.state_dim, p.critic_hidden_dim, p.value_dim, n_agent).to(device)
+            critic_shared = PPOSharedCritic(p.state_dim, p).to(device)
 
         value_normalizer = None
         if p.popart:

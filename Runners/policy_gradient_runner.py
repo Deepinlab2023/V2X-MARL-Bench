@@ -83,7 +83,7 @@ class PolicyGradientRunner:
             trainer_fn = IA2CTrainer.train_IA2C if self.algo == "ia2c" else MAA2CTrainer.train_MAA2C
             return algo_params, trainer_fn
 
-        if self.algo == ("ippo", "mappo"):
+        if self.algo in ("ippo", "mappo"):
             algo_params = PPOparameters()
             trainer_fn = IPPO_TrainerPS.train_IPPO_ParameterSharing if self.algo == "ippo" else MAPPO_TrainerPS.train_MAPPO_ParameterSharing
             return algo_params, trainer_fn
