@@ -30,7 +30,7 @@ H_RX_M = 1.5  # V2V receiver antenna height
 BS_ANTENNA_HEIGHT_M = 25  # Base station antenna height
 
 # Power levels
-V2V_POWER_LEVELS_DBM = [23, 15, 5]
+V2V_POWER_LEVELS_DBM = [23, 10, 5]
 V2I_POWER_DBM = 23
 
 # CAM message (ETSI)
@@ -170,7 +170,7 @@ class V2XParams:
         # =====================================================================
         # Fast Fading
         # =====================================================================
-        self.fast_fading_enabled = True
+        self.fast_fading_enabled = False
         self.fast_fading_tag = "FF" if self.fast_fading_enabled else "NFF"
 
         # =====================================================================

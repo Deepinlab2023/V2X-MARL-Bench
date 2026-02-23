@@ -6,7 +6,7 @@ class IDQLparameters:
         self.batch_size = 64
         self.gamma = 0.9
         self.tau = 0.005
-        self.lr = 1e-6
+        self.lr = 1e-5
 
         # Testing
         self.test_interval = self.training_episodes / 100
