@@ -80,8 +80,15 @@ class IPPOtester:
                 else:
                     logits = actor(state, agent_id)
 
-                # Greedy action
-                action_id = int(th.argmax(logits, dim=-1).item())
+                # # Greedy action
+                # action_id = int(th.argmax(logits, dim=-1).item())
+
+                if p.action_masking:
+                    action, _, _ = actor.action_sampler(logits, env.queue.flatten()[a])
+                else:
+                    action, _, _ = actor.action_sampler(logits)
+                action_id = int(action.item())
+
 
                 sc, pw = env.map_action_to_rra(action_id, a)
                 rra[a, 0, 0] = sc
