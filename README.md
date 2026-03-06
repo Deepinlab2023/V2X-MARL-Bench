@@ -20,8 +20,8 @@ V2X-MARL-Bench provides:
 |-----------|------|-------------|
 | IA2C | Actor-Critic | Independent Advantage Actor-Critic |
 | MAA2C | Actor-Critic | Multi-Agent A2C with parameter sharing |
-| IPPO | Policy Gradient | Independent Proximal Policy Optimization |
-| MAPPO | Policy Gradient | Multi-Agent PPO with centralized critic |
+| IPPO | Actor-Critic | Independent Proximal Policy Optimization |
+| MAPPO | Actor-Critic | Multi-Agent PPO with centralized critic |
 | IDQL | Value-Based | Independent Deep Q-Learning |
 | Hysteretic DQL | Value-Based | IDQL with hysteretic learning rates |
 | VDN | Value-Based | Value Decomposition Network |
