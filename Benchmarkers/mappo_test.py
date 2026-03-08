@@ -84,9 +84,10 @@ class MAPPOtester:
                 else:
                     logits = actor(state, agent_id)
 
-                # # Greedy action
+                # # Greedy action (before)
                 # action_id = int(th.argmax(logits, dim=-1).item())
-                
+
+                # # Stochastic policy with action masking (now)
                 if p.action_masking:
                     action, _, _ = actor.action_sampler(logits, env.queue.flatten()[a])
                 else:
