@@ -90,7 +90,7 @@ python main.py --env SIG --algo idql
 python main.py --env POSIG --algo idql
 ```
 
-For NFIG and SIG SL, `--loc` selects one of 9 predefined vehicle topologies that vary traffic density and distance to the base station (BS):
+For NFIG and SIG SL, `--loc` selects one of 9 predefined vehicle topologies that vary traffic density and relative distance to the base station (BS). BS distance reflects the longitudinal offset between the road segment occupied by vehicles and the BS, which depends on the number of agents and vehicle density. All 9 topologies are supported for 4, 8, and 16 agents. For SIG ML and POSIG, the number of agents can be set to 4, 8, or 16 by changing `self.n_agent` in `Configuration/env_params.py` (default datasets are provided for all three settings). Algorithm hyperparameters and environment settings can be configured in the `Configuration/` directory.
 
 | `--loc` | Density | BS Distance |
 |---------|---------|-------------|
@@ -104,9 +104,16 @@ For NFIG and SIG SL, `--loc` selects one of 9 predefined vehicle topologies that
 | `7.0`   | High    | Mid         |
 | `8.0`   | High    | Close       |
 
-![Testing locations for L=4](assets/testing_dataset.png)
+<!-- ![Testing locations for L=4](Assets/testing_dataset.png) -->
 
-Algorithm hyperparameters and environment settings can be configured in the `Configuration/` directory. For SIG ML and POSIG, the number of agents can be set to 4, 8, or 16 by changing `self.n_agent` in `Configuration/env_params.py` (default datasets are provided for all three settings).
+<p align="center">
+  <img src="Assets/testing_dataset.png" alt="Testing locations for L=4">
+  <br>
+  <em>Nine testing topologies for the 4-agent setting.</em>
+</p>
+
+
+
 
 ---
 
