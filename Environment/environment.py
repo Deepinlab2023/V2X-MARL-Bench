@@ -576,9 +576,10 @@ class Environ:
         for i in range(self.n_agent):
             veh_tx = self.agent_to_veh[i]
             veh_rx = self._get_rx_veh_idx(i)
-            channel_norm = np.array([
-                self.v2v_pathloss[veh_tx, veh_rx] / self.norm_v2v_channel_factor
-            ])
+            pl = (self.v2v_pathloss_with_ff[veh_tx, veh_rx]
+                  if self.fast_fading_enabled
+                  else self.v2v_pathloss[veh_tx, veh_rx])
+            channel_norm = np.array([pl / self.norm_v2v_channel_factor])
             g_i = np.hstack((g_i, channel_norm))
 
         for i in range(self.n_agent):
@@ -586,10 +587,11 @@ class Environ:
                 if i == j:
                     continue
                 veh_tx = self.agent_to_veh[j]
-                veh_rx = self._get_rx_veh_idx(j)
-                channel_norm = np.array([
-                    self.v2v_pathloss[veh_tx, veh_rx] / self.norm_v2v_channel_factor
-                ])
+                veh_rx = self._get_rx_veh_idx(i)
+                pl = (self.v2v_pathloss_with_ff[veh_tx, veh_rx]
+                      if self.fast_fading_enabled
+                      else self.v2v_pathloss[veh_tx, veh_rx])
+                channel_norm = np.array([pl / self.norm_v2v_channel_factor])
                 g_ji = np.hstack((g_ji, channel_norm))
 
         for state_info in [g_i, g_ji]:
@@ -620,7 +622,9 @@ class Environ:
         for i in range(self.n_agent):
             veh_tx = self.agent_to_veh[i]
             veh_rx = self._get_rx_veh_idx(i)
-            pl_db = self.v2v_pathloss[veh_tx, veh_rx]
+            pl_db = (self.v2v_pathloss_with_ff[veh_tx, veh_rx]
+                     if self.fast_fading_enabled
+                     else self.v2v_pathloss[veh_tx, veh_rx])
             g_i = np.hstack((g_i, norm_gain(pl_db, 'v2v_link')))
 
         g_ji = np.array([])
@@ -630,25 +634,33 @@ class Environ:
                     continue
                 veh_tx = self.agent_to_veh[j]
                 veh_rx = self._get_rx_veh_idx(i)
-                pl_db = self.v2v_pathloss[veh_tx, veh_rx]
+                pl_db = (self.v2v_pathloss_with_ff[veh_tx, veh_rx]
+                         if self.fast_fading_enabled
+                         else self.v2v_pathloss[veh_tx, veh_rx])
                 g_ji = np.hstack((g_ji, norm_gain(pl_db, 'v2v_interference')))
 
         g_m = np.array([])
         for m in range(self.n_sc):
-            pl_db = self.v2i_pathloss_to_bs[m]
+            pl_db = (self.v2i_pathloss_to_bs_with_ff[m]
+                     if self.fast_fading_enabled
+                     else self.v2i_pathloss_to_bs[m])
             g_m = np.hstack((g_m, norm_gain(pl_db, 'veh_to_bs')))
 
         g_bi = np.array([])
         for i in range(self.n_agent):
             for m in range(self.n_sc):
                 veh_rx = self._get_rx_veh_idx(i)
-                pl_db = self.v2i_pathloss_to_veh[m, veh_rx]
+                pl_db = (self.v2i_pathloss_to_veh_with_ff[m, veh_rx]
+                         if self.fast_fading_enabled
+                         else self.v2i_pathloss_to_veh[m, veh_rx])
                 g_bi = np.hstack((g_bi, norm_gain(pl_db, 'v2v_interference')))
 
         g_ib = np.array([])
         for i in range(self.n_agent):
             veh_tx = self.agent_to_veh[i]
-            pl_db = self.v2v_pathloss_to_bs[veh_tx]
+            pl_db = (self.v2v_pathloss_to_bs_with_ff[veh_tx]
+                     if self.fast_fading_enabled
+                     else self.v2v_pathloss_to_bs[veh_tx])
             g_ib = np.hstack((g_ib, norm_gain(pl_db, 'veh_to_bs')))
 
         if not hasattr(self, 'previous_interference_per_sc'):
@@ -693,10 +705,14 @@ class Environ:
 
         veh_tx = self.agent_to_veh[ag_idx]
         veh_rx = self._get_rx_veh_idx(ag_idx)
-        pl_db = self.v2v_pathloss[veh_tx, veh_rx]
+        pl_db = (self.v2v_pathloss_with_ff[veh_tx, veh_rx]
+                 if self.fast_fading_enabled
+                 else self.v2v_pathloss[veh_tx, veh_rx])
         g_i = np.array([norm_gain(pl_db, 'v2v_link')])
 
-        pl_db = self.v2v_pathloss_to_bs[veh_tx]
+        pl_db = (self.v2v_pathloss_to_bs_with_ff[veh_tx]
+                 if self.fast_fading_enabled
+                 else self.v2v_pathloss_to_bs[veh_tx])
         g_ib = np.array([norm_gain(pl_db, 'veh_to_bs')])
 
         if not hasattr(self, 'previous_interference_per_sc'):
