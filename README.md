@@ -23,13 +23,6 @@ Built with simplicity in mind — no heavy dependencies, no complex setup. If yo
 
 C-V2X resource allocation requires vehicles to jointly select subchannels and transmission power levels to maximize network throughput while managing interference. V2X-MARL-Bench formulates this as a multi-agent interference game and benchmarks 8 MARL algorithms across 4 task types of increasing complexity and observability.
 
-Key features:
-- 8 MARL algorithms spanning value-based and actor-critic families
-- 4 task formulations: NFIG, SIG SL, SIG ML, and POSIG
-- 3GPP TR 36.885-compliant channel models (path loss + Rayleigh fading)
-- SUMO-based vehicle mobility traces
-- Scalable evaluation across 4, 8, and 16 agents
-- Lightweight implementation using only standard scientific Python libraries
 
 ---
 
@@ -92,17 +85,17 @@ python main.py --env POSIG --algo idql
 
 For NFIG and SIG SL, `--loc` selects one of 9 predefined vehicle topologies that vary traffic density and relative distance to the base station (BS). BS distance reflects the longitudinal offset between the road segment occupied by vehicles and the BS, which depends on the number of agents and vehicle density. All 9 topologies are supported for 4, 8, and 16 agents. For SIG ML and POSIG, the number of agents can be set to 4, 8, or 16 by changing `self.n_agent` in `Configuration/env_params.py` (default datasets are provided for all three settings). Algorithm hyperparameters and environment settings can be configured in the `Configuration/` directory.
 
-| `--loc` | Density | BS Distance |
-|---------|---------|-------------|
-| `0.0`   | Low     | Far         |
-| `1.0`   | Low     | Mid         |
-| `2.0`   | Low     | Close       |
-| `3.0`   | Mid     | Far         |
-| `4.0`   | Mid     | Mid         |
-| `5.0`   | Mid     | Close       |
-| `6.0`   | High    | Far         |
-| `7.0`   | High    | Mid         |
-| `8.0`   | High    | Close       |
+| `--loc` | Density (veh/km) | BS Distance |
+|---------|-----------------|-------------|
+| `0.0`   | 35              | Far         |
+| `1.0`   | 35              | Mid         |
+| `2.0`   | 35              | Close       |
+| `3.0`   | 123             | Far         |
+| `4.0`   | 123             | Mid         |
+| `5.0`   | 123             | Close       |
+| `6.0`   | 500             | Far         |
+| `7.0`   | 500             | Mid         |
+| `8.0`   | 500             | Close       |
 
 <!-- ![Testing locations for L=4](Assets/testing_dataset.png) -->
 
@@ -167,7 +160,7 @@ Value-based algorithms currently do not support parameter sharing.
 
 This framework extends our preliminary work presented at ICC 2025. If you use V2X-MARL-Bench in your research, please cite:
 ```bibtex
-@inproceedings{wang2025v2x,
+@inproceedings{11161818,
   author    = {Wang, Siyuan and Maheshwari, Pranav and Lei, Lei and Mei, Jie and Zheng, Kan},
   title     = {Multi-Agent DRL for Resource Allocation in Vehicular Networks: A Comparative Study},
   booktitle = {ICC 2025 - IEEE International Conference on Communications},
