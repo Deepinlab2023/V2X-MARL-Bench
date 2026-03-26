@@ -482,33 +482,3 @@ def compute_exhaustive_baseline(
                                 avg_exhaustive_return, all_returns_flat)
     
     return all_location_returns, avg_exhaustive_return
-
-
-def _print_baseline_summary(name: str, all_location_returns: List[List[float]], 
-                            num_trials: int, avg_return: float, 
-                            all_returns_flat: List[float]):
-    """Helper to print baseline summary table."""
-    n_locations = len(all_location_returns)
-    total_trials = n_locations * num_trials
-    
-    print(f"\n{'='*70}")
-    print(f"{name} Baseline Summary ({n_locations} locations × {num_trials} trials = {total_trials} total):")
-    print(f"  Average: {avg_return:.3f}")
-    print(f"  Std Dev: {np.std(all_returns_flat):.3f}")
-    print(f"{'='*70}")
-    
-    # Detailed table
-    col_width = 12
-    header = f"{'Location':<10} "
-    for i in range(num_trials):
-        header += f"{'T'+str(i+1):<{col_width}}"
-    header += f"{'Mean':<{col_width}} {'Std':<{col_width}}"
-    print(f"\n{header}")
-    print("=" * len(header))
-    
-    for loc_idx, loc_returns in enumerate(all_location_returns):
-        row = f"{loc_idx:<10} "
-        for r in loc_returns:
-            row += f"{r:<{col_width}.3f}"
-        row += f"{np.mean(loc_returns):<{col_width}.3f} {np.std(loc_returns):<{col_width}.3f}"
-        print(row)

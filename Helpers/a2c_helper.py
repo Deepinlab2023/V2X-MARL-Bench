@@ -1,4 +1,6 @@
 import csv
+from datetime import datetime
+import os
 import numpy as np
 import torch as th
 import matplotlib.pyplot as plt
@@ -9,6 +11,7 @@ from Environment.environment_utility import (
     random_sample,
     consecutive_sample,
     ordered_sample,
+    build_csv_name,
 )
 
 device = th.device("cuda" if th.cuda.is_available() else "cpu")
@@ -46,43 +49,31 @@ class A2CHelper:
     @staticmethod
     def init_csv_logging(params, algo_name: str, posig_tag: Optional[str] = None):
 
-        suffix = A2CHelper.build_feature_suffix(params)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        effective_algo = f"{algo_name}NS" if getattr(params, "no_sharing", False) else algo_name
 
-        prefix = (
-            f"{algo_name}NS_trial_"
-            if getattr(params, "no_sharing", False)
-            else f"{algo_name}_trial_"
+        tags = []
+        if getattr(params, "action_masking", False):
+            tags.append("MASK")
+        if getattr(params, "adv_normalization", False):
+            tags.append("NORM")
+        features = "_".join(tags) if tags else None
+
+        csv_name = build_csv_name(
+            algo_name=effective_algo,
+            task_type=params.task_type,
+            n_agent=int(params.n_agent),
+            n_sc=int(params.n_sc),
+            ff_tag=getattr(params, "fast_fading_tag", "FF"),
+            trial_run=params.trial_run,
+            ts=ts,
+            loc=params.loc,
+            features=features,
         )
 
-        if params.task_type == "NFIG":
-            csv_name = (
-                f"{prefix}{params.trial_run}_NFIG"
-                f"{int(params.n_agent)}{int(params.n_sc)}_"
-                f"{int(params.loc)}{suffix}.csv"
-            )
-
-        elif params.task_type == "SIG":
-            if params.loc is None:
-                csv_name = (
-                    f"{prefix}{params.trial_run}_SIG"
-                    f"{int(params.n_agent)}{int(params.n_sc)}_"
-                    f"ML_{params.fast_fading_tag}{suffix}.csv"
-                )
-            else:
-                csv_name = (
-                    f"{prefix}{params.trial_run}_SIG"
-                    f"{int(params.n_agent)}{int(params.n_sc)}_"
-                    f"SL_{params.fast_fading_tag}_{params.loc}{suffix}.csv"
-                )
-
-        elif params.task_type == "POSIG":
-            if posig_tag:
-                csv_name = f"{prefix}{params.trial_run}_POSIG_{posig_tag}{suffix}.csv"
-            else:
-                csv_name = f"{prefix}{params.trial_run}_POSIG{suffix}.csv"
-        else:
-            raise ValueError(f"Unknown task_type: {params.task_type}")
-
+        out_dir = os.path.join("Results", effective_algo)
+        os.makedirs(out_dir, exist_ok=True)
+        csv_name = os.path.join(out_dir, csv_name)
         csv_file = open(csv_name, "a", newline="")
         csv_writer = csv.writer(csv_file)
         return csv_file, csv_writer

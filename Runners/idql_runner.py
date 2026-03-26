@@ -22,12 +22,14 @@ class IDQLrunner:
             'algo_params': algo_params,
         }
 
+        algo_name = "HYS" if self.is_hysteretic_q else "IDQL"
         test_rewards_n_trails = []
-
 
         for trial in range(algo_params.num_trials):
             print(f"Trial: {trial + 1}")
-            train_rewards, test_rewards = IDQLtrainerNS.train_IDQL_NoSharing(**train_params)
+            train_rewards, test_rewards = IDQLtrainerNS.train_IDQL_NoSharing(
+                **train_params, algo_name=algo_name, trial_run=trial
+            )
             test_rewards_n_trails.append(test_rewards)
 
 

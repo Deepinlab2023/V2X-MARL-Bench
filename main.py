@@ -1,6 +1,10 @@
 import argparse
 import os
+import random
 import time
+
+import numpy as np
+import torch as th
 
 # Import Environment Information
 from Configuration.env_params import V2XParams
@@ -76,7 +80,15 @@ def main():
 
     parser.add_argument('--test_interval', type=int, default=1000, help='Test interval for plotting.')
     parser.add_argument('--save_dir', type=str, help='Directory to save plot images.')
+    parser.add_argument('--seed', type=int, default=None, help='Global random seed for reproducibility.')
     args = parser.parse_args()
+
+    if args.seed is not None:
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+        th.manual_seed(args.seed)
+        if th.cuda.is_available():
+            th.cuda.manual_seed_all(args.seed)
 
     test_data_list = []
 

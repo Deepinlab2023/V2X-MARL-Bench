@@ -1,4 +1,6 @@
 import csv
+from datetime import datetime
+import os
 import numpy as np
 import torch as th
 from typing import Optional, Tuple, Union
@@ -6,6 +8,7 @@ from typing import Optional, Tuple, Union
 from Environment.environment_utility import (
     sample_veh_position_from_timestep,
     random_sample,
+    build_csv_name,
 )
 
 device = th.device("cuda" if th.cuda.is_available() else "cpu")
@@ -33,31 +36,22 @@ class PPOHelper:
     # -------------------------
     @staticmethod
     def init_csv_logging(params, algo_name: str):
-        env = params.env
-        task_type = params.task_type
-        n_agent = params.n_agent
-        n_sc = params.n_sc
-        ff_on = getattr(params, "fast_fading_enabled", getattr(env, "fast_fading_enabled", False))
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        if task_type == "NFIG":
-            loc_tag = "none" if params.loc is None else int(params.loc)
-            csv_name = f"{algo_name}_trial_{params.trial_run}_NFIG{int(n_agent)}{int(n_sc)}_{loc_tag}.csv"
+        csv_name = build_csv_name(
+            algo_name=algo_name,
+            task_type=params.task_type,
+            n_agent=int(params.n_agent),
+            n_sc=int(params.n_sc),
+            ff_tag=getattr(params, "fast_fading_tag", "FF"),
+            trial_run=params.trial_run,
+            ts=ts,
+            loc=params.loc,
+        )
 
-        elif task_type == "SIG":
-            if params.loc is None:
-                csv_name = f"{algo_name}_trial_{params.trial_run}_SIG{int(n_agent)}{int(n_sc)}_ML_{ff_on}.csv"
-            else:
-                csv_name = f"{algo_name}_trial_{params.trial_run}_SIG{int(n_agent)}{int(n_sc)}_SL_{ff_on}_{params.loc}.csv"
-
-        elif task_type == "POSIG":
-            if params.loc is None:
-                csv_name = f"{algo_name}_trial_{params.trial_run}_POSIG{int(n_agent)}{int(n_sc)}_ML_{ff_on}.csv"
-            else:
-                csv_name = f"{algo_name}_trial_{params.trial_run}_POSIG{int(n_agent)}{int(n_sc)}_SL_{ff_on}_{params.loc}.csv"
-
-        else:
-            csv_name = f"{algo_name}_trial_{params.trial_run}_{task_type}.csv"
-
+        out_dir = os.path.join("Results", algo_name)
+        os.makedirs(out_dir, exist_ok=True)
+        csv_name = os.path.join(out_dir, csv_name)
         csv_file = open(csv_name, "a", newline="")
         csv_writer = csv.writer(csv_file)
         return csv_file, csv_writer

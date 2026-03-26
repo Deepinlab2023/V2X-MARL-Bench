@@ -1,3 +1,5 @@
+import csv
+from datetime import datetime
 import numpy as np
 import torch as th
 import matplotlib.pyplot as plt
@@ -36,6 +38,8 @@ class QMIXtrainerNS:
         test_data_list,
         is_vdn,
         algo_params,
+        algo_name="QMIX",
+        trial_run=0,
     ):
         # --- Determine input dimension based on task type ---
         if env_name == "POSIG":
@@ -84,6 +88,23 @@ class QMIXtrainerNS:
 
         train_data = env_params.train_data
 
+        # --- CSV logging setup ---
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        csv_name = build_csv_name(
+            algo_name=algo_name,
+            task_type=env_params.task_type,
+            n_agent=env.n_agent,
+            n_sc=env_params.n_sc,
+            ff_tag=env_params.fast_fading_tag,
+            trial_run=trial_run,
+            ts=ts,
+            loc=env_params.loc,
+        )
+        out_dir = os.path.join("Results", algo_name)
+        os.makedirs(out_dir, exist_ok=True)
+        csv_file = open(os.path.join(out_dir, csv_name), "w", newline="")
+        csv_writer = csv.writer(csv_file)
+
 
         # === Main Training Loop ===
         for te in range(algo_params.training_episodes):
@@ -114,6 +135,8 @@ class QMIXtrainerNS:
                     agent_list, env_params, algo_params.num_test_episodes, env.n_agent, test_data_list, te
                 )
                 test_rewards.append(test_reward)
+                csv_writer.writerow([test_reward])
+                csv_file.flush()
 
                 plot_test_returns(
                     test_rewards, title="Test Return Over Time QMIX", figure_id=1, pause=1.0,
@@ -175,4 +198,5 @@ class QMIXtrainerNS:
 
             episode_rewards.append(np.mean(total_rewards))
 
+        csv_file.close()
         return episode_rewards, test_rewards

@@ -1,3 +1,5 @@
+import csv
+from datetime import datetime
 import numpy as np
 import torch as th
 import matplotlib.pyplot as plt
@@ -6,7 +8,7 @@ import os
 
 from Networks.Agents.idql_agent import DQNAgent
 from Helpers.plotting_helper import plot_test_returns
-from Helpers.stat_helper import *
+from Helpers.stat_helper import compute_random_baseline, compute_greedy_baseline, compute_exhaustive_baseline
 from Benchmarkers.idql_test import *
 from Environment.environment_utility import *
 
@@ -38,6 +40,8 @@ class IDQLtrainerNS:
         test_data_list,
         is_hysteretic_q,
         algo_params,
+        algo_name="IDQL",
+        trial_run=0,
     ):
         # --- Determine input dimension based on task type ---
         if env_name == "POSIG":
@@ -79,6 +83,23 @@ class IDQLtrainerNS:
         joint_action_over_te = []
 
         train_data = env_params.train_data
+
+        # --- CSV logging setup ---
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        csv_name = build_csv_name(
+            algo_name=algo_name,
+            task_type=env_params.task_type,
+            n_agent=env.n_agent,
+            n_sc=env_params.n_sc,
+            ff_tag=env_params.fast_fading_tag,
+            trial_run=trial_run,
+            ts=ts,
+            loc=env_params.loc,
+        )
+        out_dir = os.path.join("Results", algo_name)
+        os.makedirs(out_dir, exist_ok=True)
+        csv_file = open(os.path.join(out_dir, csv_name), "w", newline="")
+        csv_writer = csv.writer(csv_file)
 
 
         # env.new_random_game()
@@ -140,6 +161,8 @@ class IDQLtrainerNS:
                     prev_joint_action = joint_action
 
                 test_rewards.append(test_reward)
+                csv_writer.writerow([test_reward])
+                csv_file.flush()
 
                 plot_test_returns(
                     test_rewards, title="Test Return Over Time IDQL", figure_id=1, pause=1.0,
@@ -223,4 +246,5 @@ class IDQLtrainerNS:
 
             episode_rewards.append(np.mean(total_rewards))
 
+        csv_file.close()
         return episode_rewards, test_rewards

@@ -506,6 +506,8 @@ class Environ:
         if self.n_veh > 0:
             self._add_vehicles_from_data(self.train_data)
             self._renew_channels()
+            if self.fast_fading_enabled:
+                self._renew_fast_fading()
         else:
             print('Error!!!!')
 
