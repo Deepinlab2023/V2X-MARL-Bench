@@ -55,7 +55,7 @@ class MAA2CTrainer:
         if p.no_sharing:
             # NS: one actor per agent, FO only
             actors = [
-                A2CActorNS(p.global_state_dim, p.action_dim, p.actor_hidden_dim).to(device)
+                A2CActorNS(p.state_dim, p.action_dim, p.actor_hidden_dim).to(device)
                 for _ in range(p.n_agent)
             ]
             actor_shared = None
@@ -64,7 +64,7 @@ class MAA2CTrainer:
             if p.task_type == "POSIG":
                 base_actor_dim = p.observation_dim
             else:
-                base_actor_dim = p.global_state_dim
+                base_actor_dim = p.state_dim
 
             actor_input_dim = base_actor_dim + p.n_agent
 
