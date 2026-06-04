@@ -144,14 +144,16 @@ class QMIXtrainerNS:
                 print(f'Training reward at episode {te + 1}: {test_reward:.2f}')
 
             for t in range(env_params.n_step_per_episode):
-                if env_params.fast_fading_enabled:
-                    env._renew_fast_fading()
+                # _renew_fast_fading() is called inside env.step(); no explicit call needed.
 
-                # --- Get states (local for POSIG, global for others) ---
-                ag_state_list = []
-                for ag_idx in range(len(agent_list)):
-                    ag_state = env.get_state(ag_idx, t)
-                    ag_state_list.append(ag_state)
+                # --- Get states ---
+                # POSIG: each agent has a distinct local observation.
+                # NFIG/SIG: get_state() ignores ag_idx — call once and share.
+                if env_name == "POSIG":
+                    ag_state_list = [env.get_state(ag_idx, t) for ag_idx in range(len(agent_list))]
+                else:
+                    shared_state = env.get_state(0, t)
+                    ag_state_list = [shared_state] * len(agent_list)
 
                 # --- Get global state for mixer (always use SIG state) ---
                 global_state = env.get_global_state(t)
@@ -173,10 +175,11 @@ class QMIXtrainerNS:
                 total_rewards += global_reward
 
                 # --- Get next states ---
-                ag_next_state_list = []
-                for ag_idx in range(len(agent_list)):
-                    ag_next_state = env.get_state(ag_idx, t + 1)
-                    ag_next_state_list.append(ag_next_state)
+                if env_name == "POSIG":
+                    ag_next_state_list = [env.get_state(ag_idx, t + 1) for ag_idx in range(len(agent_list))]
+                else:
+                    shared_next_state = env.get_state(0, t + 1)
+                    ag_next_state_list = [shared_next_state] * len(agent_list)
 
                 # --- Get next global state for mixer ---
                 global_next_state = env.get_global_state(t + 1)

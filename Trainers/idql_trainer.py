@@ -171,14 +171,16 @@ class IDQLtrainerNS:
                 print(f"Training reward at episode {te + 1}: {test_reward:.2f}")
 
             for t in range(env_params.n_step_per_episode):
-                if env_params.fast_fading_enabled:
-                    env._renew_fast_fading()
+                # _renew_fast_fading() is called inside env.step(); no explicit call needed.
 
-                # --- Get states (POSIG uses per-agent observation) ---
-                ag_state_list = []
-                for ag_idx in range(len(agent_list)):
-                    ag_state = env.get_state(ag_idx, t)
-                    ag_state_list.append(ag_state)
+                # --- Get states ---
+                # POSIG: each agent has a distinct local observation.
+                # NFIG/SIG: get_state() ignores ag_idx — call once and share.
+                if env_name == "POSIG":
+                    ag_state_list = [env.get_state(ag_idx, t) for ag_idx in range(len(agent_list))]
+                else:
+                    shared_state = env.get_state(0, t)
+                    ag_state_list = [shared_state] * len(agent_list)
 
                 ag_action_list = []
                 joint_action = []
@@ -222,11 +224,12 @@ class IDQLtrainerNS:
 
                 total_rewards += global_reward
 
-                # --- Get next states (POSIG uses per-agent observation) ---
-                ag_next_state_list = []
-                for ag_idx in range(len(agent_list)):
-                    ag_next_state = env.get_state(ag_idx, t + 1)
-                    ag_next_state_list.append(ag_next_state)
+                # --- Get next states ---
+                if env_name == "POSIG":
+                    ag_next_state_list = [env.get_state(ag_idx, t + 1) for ag_idx in range(len(agent_list))]
+                else:
+                    shared_next_state = env.get_state(0, t + 1)
+                    ag_next_state_list = [shared_next_state] * len(agent_list)
 
                 for ag_idx in range(len(agent_list)):
                     transition = (
