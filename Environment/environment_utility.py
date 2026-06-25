@@ -1,57 +1,9 @@
 import numpy as np
-import secrets
 import pandas as pd
 import random
-from collections import defaultdict
 from typing import Optional
 import sys
 import scipy.stats as stats
-from Benchmarkers.idql_test import IDQLtester
-import torch as th
-
-
-class EnvironHelper:
-
-    def __init__(self, params):
-        self.state_type = params.V2I_V2V_scenario_state_type
-        self.n_pw_levels = params.num_pw_levels
-        self.action_dim = params.num_actions
-    
-        # print("self.state_type: ", self.state_type)
-        # print("self.n_pw_levels: ", self.n_pw_levels)
-        # print("self.action_dim: ", self.action_dim)
-
-    def mapping_action2RRA(self, action):
-
-        if self.state_type == 'simplified_version':
-
-
-            if action < self.action_dim - 1:
-                # convert action index to power allocation and SC allocation
-                SC_index = self.ag_idx # self.n_SC - self.ag_idx - 1
-                Power_level_index = action % self.n_pw_levels
-            else:
-                SC_index = -1
-                Power_level_index = -1
-        else:
-
-            if action < self.action_dim - 1:
-                # convert action index to power allocation and SC allocation
-                SC_index = int(np.floor(action.cpu().numpy() / self.n_pw_levels))
-                Power_level_index = action % self.n_pw_levels
-            else:
-                SC_index = -1
-                Power_level_index = -1
-                
-        return SC_index, Power_level_index
-    
-    def set_seed(seed):
-            np.random.seed(seed)  # NumPy random generator
-            random.seed(seed)  # Python’s built-in random module
-            th.manual_seed(seed)  # PyTorch CPU
-            th.cuda.manual_seed_all(seed)  # PyTorch GPU
-            th.backends.cudnn.deterministic = True
-            th.backends.cudnn.benchmark = False  # Ensure determinism in training
 
 
 # loading vehicle postions over a time period. The time period will be greater than

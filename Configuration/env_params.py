@@ -20,8 +20,6 @@ VEH_NOISE_FIGURE_DB = 9
 
 # Channel model
 CARRIER_FREQUENCY_GHZ = 2
-DECORRELATION_DISTANCE_M = 10
-SHADOW_STD_DB = 3
 NOISE_POWER_DBM = -114
 
 # Antenna heights (m)
@@ -44,7 +42,6 @@ TIME_FAST_S = 0.001  # Fast fading update interval (1 ms)
 
 # Normalization factors
 NORM_V2V_CHANNEL_FACTOR = 120
-NORM_V2V_INTERFERENCE_FACTOR = 80
 
 # =============================================================================
 # Topology Configuration
@@ -124,15 +121,12 @@ class V2XParams:
         self.bs_noise_figure_db = BS_NOISE_FIGURE_DB
         self.veh_antenna_gain_dbi = VEH_ANTENNA_GAIN_DBI
         self.veh_noise_figure_db = VEH_NOISE_FIGURE_DB
-        self.decorrelation_distance_m = DECORRELATION_DISTANCE_M
-        self.shadow_std_db = SHADOW_STD_DB
         self.noise_power_dbm = NOISE_POWER_DBM
         self.v2v_power_levels_dbm = V2V_POWER_LEVELS_DBM
         self.v2i_power_dbm = V2I_POWER_DBM
         self.cam_size_bits = CAM_SIZE_BITS
         self.bandwidth_per_sc_hz = BANDWIDTH_PER_SC_HZ
         self.norm_v2v_channel_factor = NORM_V2V_CHANNEL_FACTOR
-        self.norm_v2v_interference_factor = NORM_V2V_INTERFERENCE_FACTOR
 
         # Channel model parameters
         self.carrier_freq_ghz = CARRIER_FREQUENCY_GHZ
@@ -176,7 +170,6 @@ class V2XParams:
         # =====================================================================
         # Action Space
         # =====================================================================
-        self.state_type = 'normal_version'
         self.n_power_levels = len(self.v2v_power_levels_dbm)
         self.n_actions = self.n_power_levels * self.n_sc + 1
 

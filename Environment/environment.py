@@ -58,8 +58,6 @@ class Environ:
         self.h_rx = params.h_rx_m
         self.bs_antenna_height = params.bs_antenna_height_m
         self.carrier_freq_ghz = params.carrier_freq_ghz
-        self.decorrelation_distance_m = params.decorrelation_distance_m
-        self.shadow_std_db = params.shadow_std_db
         self.bs_position = params.bs_position
 
         # ---------------------------------------------------------------------
@@ -87,7 +85,6 @@ class Environ:
         self.noise_power_dbm = params.noise_power_dbm
         self.noise_power_mw = 10 ** (self.noise_power_dbm / 10)
         self.norm_v2v_channel_factor = params.norm_v2v_channel_factor
-        self.norm_v2v_interference_factor = params.norm_v2v_interference_factor
         self.bs_antenna_gain_dbi = params.bs_antenna_gain_dbi
         self.bs_noise_figure_db = params.bs_noise_figure_db
         self.veh_antenna_gain_dbi = params.veh_antenna_gain_dbi
@@ -115,7 +112,6 @@ class Environ:
         # ---------------------------------------------------------------------
         self.n_power_levels = params.n_power_levels
         self.n_actions = params.n_actions
-        self.state_type = params.state_type
 
         # ---------------------------------------------------------------------
         # State encoding configuration (from params)
@@ -132,22 +128,31 @@ class Environ:
         else:
             timestep_dims = self.n_step_per_episode
 
+        # sc_mult: channel features expand to per-subchannel on the FF path
+        sc_mult = self.n_sc if self.fast_fading_enabled else 1
+
         if self.task_type == "NFIG":
             self.state_dim = (self.n_agent) + (self.n_agent) * (self.n_agent - 1)
         elif self.task_type == "SIG":
-            self.state_dim = ((timestep_dims) + (self.n_agent) + (self.n_agent) * (self.n_agent - 1) +
-                              (self.n_sc) + (self.n_sc * self.n_agent) + (self.n_agent) +
-                              (self.n_agent * self.n_sc) + (self.n_agent))
+            self.state_dim = (timestep_dims +
+                              self.n_agent * sc_mult +
+                              self.n_agent * (self.n_agent - 1) * sc_mult +
+                              self.n_sc + self.n_sc * self.n_agent +
+                              self.n_agent * sc_mult +
+                              self.n_agent * self.n_sc + self.n_agent)
         elif self.task_type == "POSIG":
-            self.state_dim = (timestep_dims) + (1) + (self.n_agent - 1) + (1)
+            self.state_dim = timestep_dims + sc_mult + sc_mult + self.n_sc + 1
         else:
             raise ValueError(f"Unknown task_type: {self.task_type}")
 
-        self.global_state_dim = ((timestep_dims) + (self.n_agent) + (self.n_agent) * (self.n_agent - 1) +
-                                 (self.n_sc) + (self.n_sc * self.n_agent) + (self.n_agent) +
-                                 (self.n_agent * self.n_sc) + (self.n_agent))
+        self.global_state_dim = (timestep_dims +
+                                 self.n_agent * sc_mult +
+                                 self.n_agent * (self.n_agent - 1) * sc_mult +
+                                 self.n_sc + self.n_sc * self.n_agent +
+                                 self.n_agent * sc_mult +
+                                 self.n_agent * self.n_sc + self.n_agent)
 
-        self.local_state_dim = (timestep_dims) + (1) + (1) + (self.n_sc) + (1)
+        self.local_state_dim = timestep_dims + sc_mult + sc_mult + self.n_sc + 1
 
 
     # =========================================================================
@@ -159,18 +164,12 @@ class Environ:
         if action >= self.n_actions - 1:
             return -1, -1
 
-        if self.state_type == 'simplified_version':
-            if agent_idx is None:
-                raise ValueError("agent_idx required for simplified_version state type")
-            sc_idx = agent_idx
-            power_level_idx = action % self.n_power_levels
+        if hasattr(action, 'cpu'):
+            action_val = action.cpu().numpy()
         else:
-            if hasattr(action, 'cpu'):
-                action_val = action.cpu().numpy()
-            else:
-                action_val = action
-            sc_idx = int(np.floor(action_val / self.n_power_levels))
-            power_level_idx = action % self.n_power_levels
+            action_val = action
+        sc_idx = int(np.floor(action_val / self.n_power_levels))
+        power_level_idx = action % self.n_power_levels
 
         return sc_idx, power_level_idx
 
@@ -221,14 +220,26 @@ class Environ:
 
     def _renew_fast_fading(self):
         """Update fast fading realizations for all channels."""
-        self.v2v_pathloss_with_ff = self.v2v_pathloss.copy()
+        # V2V link: independent Exp(1) per subchannel
+        self.v2v_pathloss_with_ff = np.empty((self.n_veh, self.n_veh, self.n_sc))
         for i in range(self.n_veh):
             for j in range(i + 1, self.n_veh):
-                pl_ij = self._compute_v2v_pathloss_with_ff(
-                    self.vehicles_v2v[i].position, self.vehicles_v2v[j].position)
-                self.v2v_pathloss_with_ff[i, j] = pl_ij
-                self.v2v_pathloss_with_ff[j, i] = pl_ij
+                base = self.v2v_pathloss[i, j]
+                for m in range(self.n_sc):
+                    g = np.random.exponential(1.0)
+                    val = base - 10.0 * np.log10(g)
+                    self.v2v_pathloss_with_ff[i, j, m] = val
+                    self.v2v_pathloss_with_ff[j, i, m] = val
 
+        # V2V-to-BS: independent Exp(1) per subchannel
+        self.v2v_pathloss_to_bs_with_ff = np.empty((self.n_veh, self.n_sc))
+        for veh_idx in range(self.n_veh):
+            base = self.v2v_pathloss_to_bs[veh_idx]
+            for m in range(self.n_sc):
+                g = np.random.exponential(1.0)
+                self.v2v_pathloss_to_bs_with_ff[veh_idx, m] = base - 10.0 * np.log10(g)
+
+        # V2I channels: one Exp(1) sample per SC (already per-subchannel)
         self.v2i_pathloss_to_bs_with_ff = self.v2i_pathloss_to_bs.copy()
         for sc in range(self.n_sc):
             self.v2i_pathloss_to_bs_with_ff[sc] = self._compute_v2i_pathloss_with_ff(
@@ -240,12 +251,6 @@ class Environ:
                 pl_sc_veh = self._compute_v2v_pathloss_with_ff(
                     self.vehicles_v2i[sc].position, self.vehicles_v2v[veh_idx].position)
                 self.v2i_pathloss_to_veh_with_ff[sc, veh_idx] = pl_sc_veh
-
-        self.v2v_pathloss_to_bs_with_ff = self.v2v_pathloss_to_bs.copy()
-        for veh_idx in range(self.n_veh):
-            pl_veh_bs = self._compute_v2i_pathloss_with_ff(
-                self.vehicles_v2v[veh_idx].position)
-            self.v2v_pathloss_to_bs_with_ff[veh_idx] = pl_veh_bs
 
     # =========================================================================
     # Vehicle Management
@@ -357,7 +362,7 @@ class Environ:
         for i in range(self.n_agent):
             veh_tx = self.agent_to_veh[i]
             if actions[i][0] != -1:
-                pathloss = (self.v2v_pathloss_to_bs_with_ff[veh_tx]
+                pathloss = (self.v2v_pathloss_to_bs_with_ff[veh_tx, actions[i][0]]
                             if self.fast_fading_enabled
                             else self.v2v_pathloss_to_bs[veh_tx])
                 v2v_interference_to_v2i[actions[i][0]] += 10 ** (
@@ -391,7 +396,7 @@ class Environ:
 
             if actions[i][0] != -1:
                 # V2V signal power
-                pathloss_signal = (self.v2v_pathloss_with_ff[veh_tx, veh_rx]
+                pathloss_signal = (self.v2v_pathloss_with_ff[veh_tx, veh_rx, actions[i][0]]
                                    if self.fast_fading_enabled
                                    else self.v2v_pathloss[veh_tx, veh_rx])
 
@@ -418,7 +423,7 @@ class Environ:
                         veh_tx_other = self.agent_to_veh[j]
 
                         pathloss_interference = (
-                            self.v2v_pathloss_with_ff[veh_tx_other, veh_rx]
+                            self.v2v_pathloss_with_ff[veh_tx_other, veh_rx, actions[i][0]]
                             if self.fast_fading_enabled
                             else self.v2v_pathloss[veh_tx_other, veh_rx])
 
@@ -578,10 +583,7 @@ class Environ:
         for i in range(self.n_agent):
             veh_tx = self.agent_to_veh[i]
             veh_rx = self._get_rx_veh_idx(i)
-            pl = (self.v2v_pathloss_with_ff[veh_tx, veh_rx]
-                  if self.fast_fading_enabled
-                  else self.v2v_pathloss[veh_tx, veh_rx])
-            channel_norm = np.array([pl / self.norm_v2v_channel_factor])
+            channel_norm = np.array([self.v2v_pathloss[veh_tx, veh_rx] / self.norm_v2v_channel_factor])
             g_i = np.hstack((g_i, channel_norm))
 
         for i in range(self.n_agent):
@@ -590,10 +592,7 @@ class Environ:
                     continue
                 veh_tx = self.agent_to_veh[j]
                 veh_rx = self._get_rx_veh_idx(i)
-                pl = (self.v2v_pathloss_with_ff[veh_tx, veh_rx]
-                      if self.fast_fading_enabled
-                      else self.v2v_pathloss[veh_tx, veh_rx])
-                channel_norm = np.array([pl / self.norm_v2v_channel_factor])
+                channel_norm = np.array([self.v2v_pathloss[veh_tx, veh_rx] / self.norm_v2v_channel_factor])
                 g_ji = np.hstack((g_ji, channel_norm))
 
         for state_info in [g_i, g_ji]:
@@ -624,10 +623,11 @@ class Environ:
         for i in range(self.n_agent):
             veh_tx = self.agent_to_veh[i]
             veh_rx = self._get_rx_veh_idx(i)
-            pl_db = (self.v2v_pathloss_with_ff[veh_tx, veh_rx]
-                     if self.fast_fading_enabled
-                     else self.v2v_pathloss[veh_tx, veh_rx])
-            g_i = np.hstack((g_i, norm_gain(pl_db, 'v2v_link')))
+            if self.fast_fading_enabled:
+                for m in range(self.n_sc):
+                    g_i = np.hstack((g_i, norm_gain(self.v2v_pathloss_with_ff[veh_tx, veh_rx, m], 'v2v_link')))
+            else:
+                g_i = np.hstack((g_i, norm_gain(self.v2v_pathloss[veh_tx, veh_rx], 'v2v_link')))
 
         g_ji = np.array([])
         for i in range(self.n_agent):
@@ -636,10 +636,11 @@ class Environ:
                     continue
                 veh_tx = self.agent_to_veh[j]
                 veh_rx = self._get_rx_veh_idx(i)
-                pl_db = (self.v2v_pathloss_with_ff[veh_tx, veh_rx]
-                         if self.fast_fading_enabled
-                         else self.v2v_pathloss[veh_tx, veh_rx])
-                g_ji = np.hstack((g_ji, norm_gain(pl_db, 'v2v_interference')))
+                if self.fast_fading_enabled:
+                    for m in range(self.n_sc):
+                        g_ji = np.hstack((g_ji, norm_gain(self.v2v_pathloss_with_ff[veh_tx, veh_rx, m], 'v2v_interference')))
+                else:
+                    g_ji = np.hstack((g_ji, norm_gain(self.v2v_pathloss[veh_tx, veh_rx], 'v2v_interference')))
 
         g_m = np.array([])
         for m in range(self.n_sc):
@@ -660,10 +661,11 @@ class Environ:
         g_ib = np.array([])
         for i in range(self.n_agent):
             veh_tx = self.agent_to_veh[i]
-            pl_db = (self.v2v_pathloss_to_bs_with_ff[veh_tx]
-                     if self.fast_fading_enabled
-                     else self.v2v_pathloss_to_bs[veh_tx])
-            g_ib = np.hstack((g_ib, norm_gain(pl_db, 'veh_to_bs')))
+            if self.fast_fading_enabled:
+                for m in range(self.n_sc):
+                    g_ib = np.hstack((g_ib, norm_gain(self.v2v_pathloss_to_bs_with_ff[veh_tx, m], 'veh_to_bs')))
+            else:
+                g_ib = np.hstack((g_ib, norm_gain(self.v2v_pathloss_to_bs[veh_tx], 'veh_to_bs')))
 
         if not hasattr(self, 'previous_interference_per_sc'):
             self.previous_interference_per_sc = np.zeros((self.n_agent, self.n_sc))
@@ -707,15 +709,14 @@ class Environ:
 
         veh_tx = self.agent_to_veh[ag_idx]
         veh_rx = self._get_rx_veh_idx(ag_idx)
-        pl_db = (self.v2v_pathloss_with_ff[veh_tx, veh_rx]
-                 if self.fast_fading_enabled
-                 else self.v2v_pathloss[veh_tx, veh_rx])
-        g_i = np.array([norm_gain(pl_db, 'v2v_link')])
-
-        pl_db = (self.v2v_pathloss_to_bs_with_ff[veh_tx]
-                 if self.fast_fading_enabled
-                 else self.v2v_pathloss_to_bs[veh_tx])
-        g_ib = np.array([norm_gain(pl_db, 'veh_to_bs')])
+        if self.fast_fading_enabled:
+            g_i = np.array([norm_gain(self.v2v_pathloss_with_ff[veh_tx, veh_rx, m], 'v2v_link')
+                            for m in range(self.n_sc)])
+            g_ib = np.array([norm_gain(self.v2v_pathloss_to_bs_with_ff[veh_tx, m], 'veh_to_bs')
+                             for m in range(self.n_sc)])
+        else:
+            g_i = np.array([norm_gain(self.v2v_pathloss[veh_tx, veh_rx], 'v2v_link')])
+            g_ib = np.array([norm_gain(self.v2v_pathloss_to_bs[veh_tx], 'veh_to_bs')])
 
         if not hasattr(self, 'previous_interference_per_sc'):
             self.previous_interference_per_sc = np.zeros((self.n_agent, self.n_sc))
@@ -762,7 +763,7 @@ class Environ:
                         if actions[j][0] == m:
                             veh_tx_j = self.agent_to_veh[j]
 
-                            pathloss = (self.v2v_pathloss_with_ff[veh_tx_j, veh_rx_i]
+                            pathloss = (self.v2v_pathloss_with_ff[veh_tx_j, veh_rx_i, m]
                                         if self.fast_fading_enabled
                                         else self.v2v_pathloss[veh_tx_j, veh_rx_i])
 

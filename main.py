@@ -81,6 +81,12 @@ def main():
     parser.add_argument('--test_interval', type=int, default=1000, help='Test interval for plotting.')
     parser.add_argument('--save_dir', type=str, help='Directory to save plot images.')
     parser.add_argument('--seed', type=int, default=None, help='Global random seed for reproducibility.')
+    parser.add_argument('--n_agent', type=int, default=None, choices=[4, 8, 16],
+                        help='Override number of agents (default: from env_params).')
+    parser.add_argument('--train_data', type=str, default=None,
+                        help='Override training data CSV path.')
+    parser.add_argument('--test_data', type=str, default=None,
+                        help='Override test data CSV path.')
     args = parser.parse_args()
 
     if args.seed is not None:
@@ -98,6 +104,19 @@ def main():
 
         # Environment Variable Setup
         env_params = V2XParams(args.env, args.loc)
+        if args.n_agent is not None:
+            env_params.n_agent = args.n_agent
+            env_params.n_veh_per_platoon = [2] * args.n_agent
+            env_params.n_veh = 2 * args.n_agent
+            if args.train_data is None:
+                env_params._load_vehicle_data()
+            env_params.agent_to_veh = env_params._build_agent_to_veh_mapping()
+        if args.train_data is not None:
+            env_params.train_data = load_veh_pos(args.train_data)
+            env_params.train_data_path = args.train_data
+        if args.test_data is not None:
+            env_params.test_data = load_veh_pos(args.test_data)
+            env_params.test_data_path = args.test_data
         env = Environ(env_params)
 
         # NOTE: renamed per your new convention (veh_data -> train_data)
@@ -152,6 +171,7 @@ def main():
         print(f"Test Episodes:  {len(test_data_list)}")
         print(f"Steps/Episode:  {env_params.n_step_per_episode}")
         print(f"Fast Fading:    {env_params.fast_fading_tag}")
+        print(f"State Dim:      {env.state_dim}")
         print("="*60 + "\n")
 
         
