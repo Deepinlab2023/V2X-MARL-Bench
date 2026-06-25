@@ -57,7 +57,7 @@ scikit-learn==1.5.2
 
 Run an experiment using the following command pattern:
 ```bash
-python main.py --env <ENV> --algo <ALGO> [--loc <LOC>]
+python main.py --env <ENV> --algo <ALGO> [options]
 ```
 
 **Arguments:**
@@ -67,23 +67,28 @@ python main.py --env <ENV> --algo <ALGO> [--loc <LOC>]
 | `--env`  | Task type: `NFIG`, `SIG`, or `POSIG` |
 | `--algo` | Algorithm: `idql`, `hys`, `vdn`, `qmix`, `ia2c`, `maa2c`, `ippo`, `mappo` |
 | `--loc`  | Location index (NFIG and SIG SL only; omit for SIG ML and POSIG) |
+| `--n_agent` | Number of agents: `4`, `8`, or `16` (default: `4`) |
+| `--train_data` | Path to a custom training CSV (overrides default dataset) |
+| `--test_data`  | Path to a custom evaluation CSV (overrides default dataset) |
 
 **Examples:**
 ```bash
-# NFIG
+# NFIG, 4 agents
 python main.py --env NFIG --loc 0.0 --algo idql
 
-# SIG Single-Location
-python main.py --env SIG --loc 0.0 --algo idql
+# SIG Multi-Location, 16 agents, reproducible
+python main.py --env SIG --algo mappo --n_agent 16 --seed 42
 
-# SIG Multi-Location
-python main.py --env SIG --algo idql
+# SIG Multi-Location, custom training and evaluation data
+python main.py --env SIG --algo ippo --n_agent 16 \
+    --train_data Environment/SUMOData/SIG_ML_16ag_60k.csv \
+    --test_data  Environment/SUMOData/NFIG_16ag.csv
 
 # POSIG
-python main.py --env POSIG --algo idql
+python main.py --env POSIG --algo ippo --n_agent 16
 ```
 
-For NFIG and SIG SL, `--loc` selects one of 9 predefined vehicle topologies that vary traffic density and relative distance to the base station (BS). BS distance reflects the longitudinal offset between the road segment occupied by vehicles and the BS, which depends on the number of agents and vehicle density. All 9 topologies are supported for 4, 8, and 16 agents. For SIG ML and POSIG, the number of agents can be set to 4, 8, or 16 by changing `self.n_agent` in `Configuration/env_params.py` (default datasets are provided for all three settings). Algorithm hyperparameters and environment settings can be configured in the `Configuration/` directory.
+For NFIG and SIG SL, `--loc` selects one of 9 predefined vehicle topologies that vary traffic density and relative distance to the base station (BS). BS distance reflects the longitudinal offset between the road segment occupied by vehicles and the BS, which depends on the number of agents and vehicle density. All 9 topologies are supported for 4, 8, and 16 agents. For SIG ML and POSIG, use `--n_agent` to select the agent count (default datasets are provided for all three settings). Algorithm hyperparameters and environment settings can be configured in the `Configuration/` directory.
 
 | `--loc` | Density (veh/km) | BS Distance |
 |---------|-----------------|-------------|
