@@ -265,57 +265,46 @@ class Environ:
         self.vehicles_v2i.append(Vehicle(start_position, start_velocity))
 
     def _add_vehicles_from_data(self, veh_pos_data):
-        """Add vehicles using a SINGLE snapshot dataframe."""
-        veh_ids = []
-        for i, num_vehicles in enumerate(self.n_veh_per_platoon):
-            for j in range(num_vehicles):
-                veh_ids.append(f"carflow{i}_{j}.0")
+        """Add vehicles using a SINGLE snapshot dataframe (new CSV format)."""
+        df_v2v = veh_pos_data[veh_pos_data['role'].isin(['Tx', 'Rx'])]
+        for pid in range(self.n_agent):
+            df_pair = df_v2v[df_v2v['pair_id'] == pid]
+            row_tx = df_pair[df_pair['role'] == 'Tx'].iloc[0]
+            row_rx = df_pair[df_pair['role'] == 'Rx'].iloc[0]
+            self._add_v2v_vehicle([row_tx.x, row_tx.y], row_tx.speed_ms)
+            self._add_v2v_vehicle([row_rx.x, row_rx.y], row_rx.speed_ms)
 
-        df_v2v = veh_pos_data[veh_pos_data['id'].isin(veh_ids)]
-        positions = df_v2v[['x', 'y']].values.tolist()
-        velocities = df_v2v[['speed']].values.tolist()
-        n_v2v = sum(self.n_veh_per_platoon)
-
-        for i in range(n_v2v):
-            self._add_v2v_vehicle(positions[i], velocities[i][0])
-
-        veh_ids = [f"carflowV2I_{j}.0" for j in range(self.n_sc)]
-        df_v2i = veh_pos_data[veh_pos_data['id'].isin(veh_ids)]
-        positions = df_v2i[['x', 'y']].values.tolist()
-        velocities = df_v2i[['speed']].values.tolist()
-
-        for i in range(self.n_sc):
-            self._add_v2i_vehicle(positions[i], velocities[i][0])
+        df_v2i = veh_pos_data[veh_pos_data['role'] == 'V2I']
+        for _, row in df_v2i.iterrows():
+            self._add_v2i_vehicle([row.x, row.y], row.speed_ms)
 
     def _update_positions_from_data(self, interval_idx: int):
-        """Update vehicle positions from SUMO data for given time interval."""
+        """Update vehicle positions from SUMO data for given snapshot index."""
         df = self.train_data
-        unique_times = np.sort(df["time"].unique())
-        if interval_idx - 1 >= len(unique_times):
-            raise IndexError("interval_idx exceeds available time-steps")
+        unique_snaps = np.sort(df["snapshot_id"].unique())
+        if interval_idx - 1 >= len(unique_snaps):
+            raise IndexError("interval_idx exceeds available snapshot IDs")
 
-        t_val = unique_times[interval_idx - 1]
-        df_t = df[df["time"] == t_val]
+        snap_val = unique_snaps[interval_idx - 1]
+        df_t = df[df["snapshot_id"] == snap_val]
 
-        v2v_ids = [f"carflow{i}_{j}.0"
-                   for i, n in enumerate(self.n_veh_per_platoon)
-                   for j in range(n)]
-        v2v_rows = df_t[df_t["id"].isin(v2v_ids)]
+        df_v2v = df_t[df_t['role'].isin(['Tx', 'Rx'])]
+        k = 0
+        for pid in range(self.n_agent):
+            df_pair = df_v2v[df_v2v['pair_id'] == pid]
+            for role in ['Tx', 'Rx']:
+                row = df_pair[df_pair['role'] == role].iloc[0]
+                if k < len(self.vehicles_v2v):
+                    self.vehicles_v2v[k].position = [row.x, row.y]
+                    self.vehicles_v2v[k].velocity = row.speed_ms
+                k += 1
 
-        for k, row in enumerate(v2v_rows.itertuples()):
-            if k >= len(self.vehicles_v2v):
-                break
-            self.vehicles_v2v[k].position = [row.x, row.y]
-            self.vehicles_v2v[k].velocity = row.speed
-
-        v2i_ids = [f"carflowV2I_{j}.0" for j in range(self.n_sc)]
-        v2i_rows = df_t[df_t["id"].isin(v2i_ids)]
-
-        for k, row in enumerate(v2i_rows.itertuples()):
+        df_v2i = df_t[df_t['role'] == 'V2I']
+        for k, (_, row) in enumerate(df_v2i.iterrows()):
             if k >= len(self.vehicles_v2i):
                 break
             self.vehicles_v2i[k].position = [row.x, row.y]
-            self.vehicles_v2i[k].velocity = row.speed
+            self.vehicles_v2i[k].velocity = row.speed_ms
 
     def _get_rx_veh_idx(self, agent_idx):
         """Get receiver vehicle index for a given agent (tx vehicle + 1)."""

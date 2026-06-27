@@ -131,7 +131,7 @@ def main():
 
             if args.loc is None:  # SIG ML / POSIG
                 test_data = env_params.test_data
-                test_data_list = [loc for _, loc in test_data.groupby("time", sort=False)]
+                test_data_list = [loc for _, loc in test_data.groupby("snapshot_id", sort=False)]
 
                 training_data = env_params.train_data
                 sampled_data = sample_veh_positions(1, training_data)

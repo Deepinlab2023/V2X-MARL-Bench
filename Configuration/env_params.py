@@ -71,23 +71,23 @@ TIMESTEP_ENCODING_TYPE = 'one-hot'  # Options: 'one-hot', 'normalized'
 # =============================================================================
 
 DATA_PATHS = {
-    ("NFIG", 4): './Environment/SUMOData/NFIG_4ag.csv',
-    ("NFIG", 8): './Environment/SUMOData/NFIG_8ag.csv',
-    ("NFIG", 16): './Environment/SUMOData/NFIG_16ag.csv',
-    ("SIG_SL", 4): './Environment/SUMOData/NFIG_4ag.csv',
-    ("SIG_SL", 8): './Environment/SUMOData/NFIG_8ag.csv',
-    ("SIG_SL", 16): './Environment/SUMOData/NFIG_16ag.csv',
-    ("SIG_ML", 4): './Environment/SUMOData/SIG_ML_4ag_15k.csv',
-    ("SIG_ML", 8): './Environment/SUMOData/SIG_ML_8ag_60k.csv',
-    ("SIG_ML", 16): './Environment/SUMOData/SIG_ML_16ag_60k.csv',
-    ("POSIG", 4): './Environment/SUMOData/SIG_ML_4ag_15k.csv',
-    ("POSIG", 8): './Environment/SUMOData/SIG_ML_8ag_60k.csv',
-    ("POSIG", 16): './Environment/SUMOData/SIG_ML_16ag_60k.csv',
+    ("NFIG", 4): './Environment/SUMOData/NFIG_k4.csv',
+    ("NFIG", 8): './Environment/SUMOData/NFIG_k8.csv',
+    ("NFIG", 16): './Environment/SUMOData/NFIG_k16.csv',
+    ("SIG_SL", 4): './Environment/SUMOData/NFIG_k4.csv',
+    ("SIG_SL", 8): './Environment/SUMOData/NFIG_k8.csv',
+    ("SIG_SL", 16): './Environment/SUMOData/NFIG_k16.csv',
+    ("SIG_ML", 4): './Environment/SUMOData/SIG_ML_k4.csv',
+    ("SIG_ML", 8): './Environment/SUMOData/SIG_ML_k8.csv',
+    ("SIG_ML", 16): './Environment/SUMOData/SIG_ML_k16.csv',
+    ("POSIG", 4): './Environment/SUMOData/SIG_ML_k4.csv',
+    ("POSIG", 8): './Environment/SUMOData/SIG_ML_k8.csv',
+    ("POSIG", 16): './Environment/SUMOData/SIG_ML_k16.csv',
 }
 TEST_DATA_PATHS = {
-    4: './Environment/SUMOData/NFIG_4ag.csv',
-    8: './Environment/SUMOData/NFIG_8ag.csv',
-    16: './Environment/SUMOData/NFIG_16ag.csv',
+    4: './Environment/SUMOData/NFIG_k4.csv',
+    8: './Environment/SUMOData/NFIG_k8.csv',
+    16: './Environment/SUMOData/NFIG_k16.csv',
 }
 
 

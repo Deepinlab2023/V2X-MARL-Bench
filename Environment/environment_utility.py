@@ -21,7 +21,7 @@ def load_veh_pos(file_name):
 def random_sample(t_max_control, data):
 
 
-    block_id = (data['time'] != data['time'].shift()).cumsum()
+    block_id = (data['snapshot_id'] != data['snapshot_id'].shift()).cumsum()
     data = data.copy()
     data['block_id'] = block_id
     blocks = data['block_id'].unique()
@@ -44,8 +44,8 @@ def consecutive_sample(n_intervals: int, df: pd.DataFrame, *, seed=None) -> pd.D
     H = int(n_intervals)
     if H <= 0:
         raise ValueError("n_intervals must be >= 1")
-    if "time" not in df.columns:
-        raise ValueError("DataFrame must contain a 'time' column")
+    if "snapshot_id" not in df.columns:
+        raise ValueError("DataFrame must contain a 'snapshot_id' column")
 
 
     need_init = (
@@ -58,11 +58,11 @@ def consecutive_sample(n_intervals: int, df: pd.DataFrame, *, seed=None) -> pd.D
 
     if need_init:
         df2 = df.copy()
-        df2["block_id"] = (df2["time"].diff() < 0).cumsum()
+        df2["block_id"] = (df2["snapshot_id"].diff() < 0).cumsum()
 
         blocks = []
         for bid, grp in df2.groupby("block_id", sort=True):
-            times = np.sort(grp["time"].unique())
+            times = np.sort(grp["snapshot_id"].unique())
             if len(times) >= H:
                 blocks.append({"bid": int(bid), "times": times})
         if not blocks:
@@ -106,9 +106,9 @@ def consecutive_sample(n_intervals: int, df: pd.DataFrame, *, seed=None) -> pd.D
 
 
     out = (
-        df2[(df2["block_id"] == blk["bid"]) & (df2["time"] == tval)]
+        df2[(df2["block_id"] == blk["bid"]) & (df2["snapshot_id"] == tval)]
         .drop(columns="block_id")
-        .sort_values(["time"], kind="stable")
+        .sort_values(["snapshot_id"], kind="stable")
         .reset_index(drop=True)
     )
     return out
@@ -127,7 +127,7 @@ def ordered_sample(te, data):
     Return the block at position `te` (0-based), cycling when te >= #blocks.
     """
     data = data.copy()
-    data['block_id'] = (data['time'] != data['time'].shift()).cumsum()
+    data['block_id'] = (data['snapshot_id'] != data['snapshot_id'].shift()).cumsum()
     blocks = data['block_id'].unique()          # preserves first-seen order
     idx = te % len(blocks)                       # wrap-around
     chosen_block = blocks[idx]
@@ -139,69 +139,46 @@ def ordered_sample(te, data):
 # This will sample [t_max_control] number of timesteps
 # Used for games with continuous control intervals
 def sample_veh_positions(t_max_control, data):
-    # Get the number of unique time steps in the data
-    unique_time_steps = data['time'].nunique()
+    unique_time_steps = data['snapshot_id'].nunique()
 
-    # Check if there are enough time steps to sample
     if t_max_control > unique_time_steps:
         print("Error: not enough time steps to sample")
         sys.exit(1)
 
-    # Get the unique time steps in sorted order
-    sorted_time_steps = data['time'].drop_duplicates().sort_values()
-
-    # Randomly select a starting index for sampling a block of timesteps
+    sorted_time_steps = data['snapshot_id'].drop_duplicates().sort_values()
     start_index = np.random.randint(0, unique_time_steps - t_max_control + 1)
-    # start_index = secrets.randbelow(unique_time_steps - t_max_control + 1)
-
-    # Select the successive time steps starting from the random start index
     sampled_time_steps = sorted_time_steps.iloc[start_index:start_index + t_max_control]
-
-    # Filter the DataFrame to include only the rows with the selected time steps
-    sampled_data = data[data['time'].isin(sampled_time_steps)]
+    sampled_data = data[data['snapshot_id'].isin(sampled_time_steps)]
 
     return sampled_data
 
 
-# This will sample 1 timestep
-# Used for NFIG and queue-aware environments
 def sample_veh_position_single(data):
-    # Get the number of unique time steps in the data
-    unique_time_steps = data['time'].nunique()
+    unique_time_steps = data['snapshot_id'].nunique()
 
-    # Check if there are any time steps to sample
     if unique_time_steps == 0:
         print("Error: no time steps to sample")
         sys.exit(1)
 
-    # Get the unique time steps in sorted order
-    sorted_time_steps = data['time'].drop_duplicates().sort_values()
-
-    # Randomly select one time step
+    sorted_time_steps = data['snapshot_id'].drop_duplicates().sort_values()
     sampled_time_step = np.random.choice(sorted_time_steps)
-
-    # Filter the DataFrame to include only the rows with the selected time step
-    sampled_data = data[data['time'] == sampled_time_step]
+    sampled_data = data[data['snapshot_id'] == sampled_time_step]
 
     return sampled_data
 
 
 def sample_veh_position_from_timestep(data, time_step):
-    # Check if the provided time step exists in the data
-    if time_step not in data['time'].unique():
-        print(f"Error: time step {time_step} not found in the data")
+    if time_step not in data['snapshot_id'].unique():
+        print(f"Error: snapshot_id {time_step} not found in the data")
         return None
 
-    # Filter the DataFrame to include only the rows with the provided time step
-    sampled_data = data[data['time'] == time_step]
+    sampled_data = data[data['snapshot_id'] == time_step]
 
     return sampled_data
 
-# Remove all test data from veh_pos_data
 def remove_test_data_from_veh_pos(veh_pos_data, time_steps):
-    # Filter veh_pos_data to exclude rows with time in time_steps
-    filtered_data = veh_pos_data[~veh_pos_data['time'].isin(time_steps)]
-    
+    filtered_data = veh_pos_data[~veh_pos_data['snapshot_id'].isin(time_steps)]
+
     return filtered_data
 
 def generate_actions_with_none(agent_idx, current_action, all_actions, action_dim, agent_number, null_ID):
