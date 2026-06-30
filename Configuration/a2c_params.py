@@ -24,4 +24,4 @@ class A2Cparameters:
         # You *must* keep this False for POSIG
         self.no_sharing = False      # default: FO setting, safe for NFIG/SIG
         self.action_masking = True
-        self.adv_normalization = True
+        self.adv_normalization = False

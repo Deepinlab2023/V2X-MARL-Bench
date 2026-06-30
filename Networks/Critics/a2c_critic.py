@@ -32,7 +32,7 @@ class A2CCentralizedCritic(_BaseA2CCritic):
     Uses global_state_dim since centralized critic observes full state.
     """
     def __init__(self, params):
-        state_dim = params.state_dim
+        state_dim = params.global_state_dim
         hidden_dim = params.critic_hidden_dim
         value_dim = params.value_dim
         input_dim = state_dim

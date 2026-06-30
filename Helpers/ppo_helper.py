@@ -258,38 +258,41 @@ class PPOHelper:
         g_len = int(global_state.numel())
         o_len = int(observation.numel())
 
-        T = o_len - M - 3
-        if T <= 0:
+        # o_len = T + 2*sc_mult + M + 1  (t_enc, g_i, g_ib, i_prev, queue)
+        # Try one-hot encoding (T=timesteps) then normalized (T=1)
+        T, sc_mult = None, None
+        for T_try in [timesteps, 1]:
+            remainder = o_len - T_try - M - 1
+            if remainder > 0 and remainder % 2 == 0:
+                sm = remainder // 2
+                exp = T_try + A*sm + A*(A-1)*sm + M + A*M + A*sm + A*M + A
+                if g_len == exp:
+                    T, sc_mult = T_try, sm
+                    break
+        if T is None:
+            sm_oh = max((o_len - timesteps - M - 1) // 2, 1)
+            sm_n  = max((o_len - 1         - M - 1) // 2, 1)
             raise ValueError(
-                f"Cannot determine valid T from observation length: {o_len}. "
-                f"With M={M}: expected o_len > {M + 3}"
+                f"Global state length mismatch: got {g_len}, "
+                f"expected {timesteps + A*sm_oh + A*(A-1)*sm_oh + M + A*M + A*sm_oh + A*M + A} "
+                f"(T={timesteps}, sc_mult={sm_oh}) or "
+                f"{1 + A*sm_n + A*(A-1)*sm_n + M + A*M + A*sm_n + A*M + A} "
+                f"(T=1, sc_mult={sm_n})"
             )
 
-        expected_g_len = T + A + A * (A - 1) + M + A * M + A + A * M + A
-        if g_len != expected_g_len:
-            T_norm = 1
-            expected_g_len_norm = T_norm + A + A * (A - 1) + M + A * M + A + A * M + A
-            if g_len == expected_g_len_norm:
-                T = T_norm
-            else:
-                raise ValueError(
-                    f"Global state length mismatch: got {g_len}, expected {expected_g_len} "
-                    f"(with T={T}, A={A}, M={M}) or {expected_g_len_norm} (with T=1)"
-                )
-
-        t_start = 0
-        gi_start = T
-        gji_start = gi_start + A
-        gm_start = gji_start + A * (A - 1)
-        gbi_start = gm_start + M
-        gib_start = gbi_start + A * M
-        iprev_start = gib_start + A
-        q_start = iprev_start + A * M
+        t_start    = 0
+        gi_start   = T
+        gji_start  = gi_start  + A * sc_mult
+        gm_start   = gji_start + A * (A - 1) * sc_mult
+        gbi_start  = gm_start  + M
+        gib_start  = gbi_start + A * M
+        iprev_start = gib_start + A * sc_mult
+        q_start    = iprev_start + A * M
 
         overlapping = []
         overlapping.extend(range(t_start, t_start + T))
-        overlapping.append(gi_start + agent_idx)
-        overlapping.append(gib_start + agent_idx)
+        overlapping.extend(range(gi_start  + agent_idx * sc_mult, gi_start  + (agent_idx + 1) * sc_mult))
+        overlapping.extend(range(gib_start + agent_idx * sc_mult, gib_start + (agent_idx + 1) * sc_mult))
         overlapping.extend(range(iprev_start + agent_idx * M, iprev_start + (agent_idx + 1) * M))
         overlapping.append(q_start + agent_idx)
 
