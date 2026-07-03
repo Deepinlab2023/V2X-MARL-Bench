@@ -1,5 +1,6 @@
 import csv
 from datetime import datetime
+from functools import lru_cache
 import os
 import numpy as np
 import torch as th
@@ -244,6 +245,42 @@ class PPOHelper:
     # MAPPO feature pruning utilities
     # -------------------------
     @staticmethod
+    @lru_cache(maxsize=64)
+    def _cached_overlapping_indices(g_len: int, o_len: int, agent_idx: int,
+                                    timesteps: int, n_agent: int, subchannels: int):
+        """Cache overlapping indices — result depends only on dimensions, not values."""
+        A, M = n_agent, subchannels
+        T, sc_mult = None, None
+        for T_try in [timesteps, 1]:
+            remainder = o_len - T_try - M - 1
+            if remainder > 0 and remainder % 2 == 0:
+                sm = remainder // 2
+                exp = T_try + A*sm + A*(A-1)*sm + M + A*M + A*sm + A*M + A
+                if g_len == exp:
+                    T, sc_mult = T_try, sm
+                    break
+        if T is None:
+            raise ValueError(f"Cannot resolve T/sc_mult: g_len={g_len}, o_len={o_len}")
+
+        t_start     = 0
+        gi_start    = T
+        gji_start   = gi_start   + A * sc_mult
+        gm_start    = gji_start  + A * (A - 1) * sc_mult
+        gbi_start   = gm_start   + M
+        gib_start   = gbi_start  + A * M
+        iprev_start = gib_start  + A * sc_mult
+        q_start     = iprev_start + A * M
+
+        overlapping = set()
+        overlapping.update(range(t_start, t_start + T))
+        overlapping.update(range(gi_start  + agent_idx * sc_mult, gi_start  + (agent_idx + 1) * sc_mult))
+        overlapping.update(range(gib_start + agent_idx * sc_mult, gib_start + (agent_idx + 1) * sc_mult))
+        overlapping.update(range(iprev_start + agent_idx * M, iprev_start + (agent_idx + 1) * M))
+        overlapping.add(q_start + agent_idx)
+
+        return frozenset(overlapping)
+
+    @staticmethod
     def find_overlapping_indices(global_state,
                                  observation,
                                  agent_idx: int,
@@ -310,13 +347,14 @@ class PPOHelper:
         g = global_state if global_state.dim() == 1 else global_state.view(-1)
         obs = observation if observation.dim() == 1 else observation.view(-1)
 
-        overlapping_indices = PPOHelper.find_overlapping_indices(
-            g, obs, agent_idx, timesteps, n_agent, subchannels
+        overlapping_set = PPOHelper._cached_overlapping_indices(
+            g.numel(), obs.numel(), agent_idx, timesteps, n_agent, subchannels
         )
 
-        total_indices = list(range(g.numel()))
-        non_overlapping_indices = [i for i in total_indices if i not in overlapping_indices]
-        non_overlapping_global_state = g[non_overlapping_indices]
+        mask = th.ones(g.numel(), dtype=th.bool, device=g.device)
+        for idx in overlapping_set:
+            mask[idx] = False
+        non_overlapping_global_state = g[mask]
 
         fp_state = th.cat([obs, non_overlapping_global_state, agent_id.squeeze(0)], dim=-1)
         return fp_state

@@ -81,8 +81,8 @@ python main.py --env SIG --algo mappo --n_agent 16 --seed 42
 
 # SIG Multi-Location, custom training and evaluation data
 python main.py --env SIG --algo ippo --n_agent 16 \
-    --train_data Environment/SUMOData/SIG_ML_16ag_60k.csv \
-    --test_data  Environment/SUMOData/NFIG_16ag.csv
+    --train_data Environment/SUMOData/SIG_ML_k16.csv \
+    --test_data  Environment/SUMOData/NFIG_k16.csv
 
 # POSIG
 python main.py --env POSIG --algo ippo --n_agent 16
@@ -126,6 +126,7 @@ V2X-MARL-Bench/
 ├── Networks/                # Actor, critic, and Q-network architectures
 ├── Helpers/                 # Utility functions (GAE, returns, baseline)
 ├── Benchmarkers/            # Evaluation and performance analysis tools
+├── Results/                 # Output directory (auto-created); one sub-folder per algorithm
 └── requirements.txt
 ```
 
