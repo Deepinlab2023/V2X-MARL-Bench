@@ -1,17 +1,20 @@
 from Configuration.idql_params import IDQLparameters
+from Configuration.param_loader import apply_overrides
 from Trainers.idql_trainer import IDQLtrainerPS, IDQLtrainerNS
 from Environment.environment_utility import *
 
 
 class IDQLrunner:
-    def __init__(self, env, env_name, env_params, is_hysteretic_q):
+    def __init__(self, env, env_name, env_params, is_hysteretic_q, param_overrides=None):
         self.env = env
         self.env_name = env_name
         self.env_params = env_params
         self.is_hysteretic_q = is_hysteretic_q
+        self.param_overrides = param_overrides
 
     def run_experiment(self, test_data_list):
         algo_params = IDQLparameters()
+        apply_overrides(algo_params, self.param_overrides)
 
         train_params = {
             'env': self.env,
