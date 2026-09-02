@@ -87,5 +87,15 @@ LOG_DIR="$SCRIPT_DIR/logs/$TAG"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/loc${LOC}_trial${TRIAL_RUN}.log"
 
+# Stagger by trial number within this loc's 5-task group. SLURM can start
+# several array tasks for the same loc within the same second if enough
+# GPUs are free -- without this, their CSV filenames (timestamped when each
+# process's own init_csv_logging() call runs, well after this sed/echo, not
+# at launch) can collide and interleave writes into one file. 8s/trial keeps
+# every trial's actual startup instant in a distinct second even accounting
+# for module-load/torch-import jitter, without meaningfully denting an
+# 8-hour+ training run.
+sleep $(( TRIAL_RUN * 8 ))
+
 echo "Task $SLURM_ARRAY_TASK_ID: $TAG loc=$LOC trial=$TRIAL_RUN -> $LOG_FILE"
 python3 -u main.py --env "$ENV_NAME" --loc "$LOC" --algo "$ALGO" --n_agent "$N_AGENT" > "$LOG_FILE" 2>&1
