@@ -86,7 +86,7 @@ echo "Submitted NFF array job $NFF_JOB (array=$ARRAY_RANGE)"
 FF_JOB=$(sbatch --parsable --array="$ARRAY_RANGE" --dependency=afterany:"$NFF_JOB" --export="$EXPORT_VARS,TAG=FF" array_task.sh)
 echo "Submitted FF array job $FF_JOB (array=$ARRAY_RANGE, waits for $NFF_JOB to finish)"
 
-MOVE_JOB=$(sbatch --parsable --dependency=afterany:"$FF_JOB" --job-name=v2x_move_results --time=00:05:00 --mem=1G --cpus-per-task=1 --wrap="
+MOVE_JOB=$(sbatch --parsable --dependency=afterany:"$FF_JOB" --job-name=v2x_move_results_new_topology --time=00:05:00 --mem=1G --cpus-per-task=1 --wrap="
     if [ -d '$SCRIPT_DIR/Results/IPPO' ]; then
         DEST_DIR='$SCRIPT_DIR/Results/linux'
         TS=\$(date +%Y%m%d_%H%M%S)

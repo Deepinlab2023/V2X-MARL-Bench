@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=v2x_ippo
+#SBATCH --job-name=v2x_ippo_new_topology
 #SBATCH --gpus=h100_1g.10gb:1
 #SBATCH --mem=10G
 #SBATCH --cpus-per-task=4
