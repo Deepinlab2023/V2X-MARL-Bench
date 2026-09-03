@@ -2,6 +2,7 @@ from types import SimpleNamespace as SN
 
 from Configuration.a2c_params import A2Cparameters
 from Configuration.ppo_params import PPOparameters
+from Configuration.param_loader import apply_overrides
 
 from Trainers.ia2c_trainer import IA2CTrainer
 from Trainers.maa2c_trainer import MAA2CTrainer
@@ -22,7 +23,7 @@ class PolicyGradientRunner:
 
     _SUPPORTED = ("ia2c", "maa2c", "ippo", "mappo")
 
-    def __init__(self, env, task_type, env_params, algo: str):
+    def __init__(self, env, task_type, env_params, algo: str, param_overrides=None):
         if algo not in self._SUPPORTED:
             raise ValueError(
                 f"PolicyGradientRunner: unsupported algo '{algo}'. "
@@ -32,6 +33,7 @@ class PolicyGradientRunner:
         self.task_type = task_type
         self.env_params = env_params
         self.algo = algo
+        self.param_overrides = param_overrides
 
     # ---------- param merge ---------- #
     def combine_params(self, algo_params, test_data_list, *, prefer="algo_params"):
@@ -81,12 +83,13 @@ class PolicyGradientRunner:
         if self.algo in ("ia2c", "maa2c"):
             algo_params = A2Cparameters()
             trainer_fn = IA2CTrainer.train_IA2C if self.algo == "ia2c" else MAA2CTrainer.train_MAA2C
-            return algo_params, trainer_fn
 
-        if self.algo in ("ippo", "mappo"):
+        elif self.algo in ("ippo", "mappo"):
             algo_params = PPOparameters()
             trainer_fn = IPPO_TrainerPS.train_IPPO_ParameterSharing if self.algo == "ippo" else MAPPO_TrainerPS.train_MAPPO_ParameterSharing
-            return algo_params, trainer_fn
+
+        apply_overrides(algo_params, self.param_overrides)
+        return algo_params, trainer_fn
 
     # ---------- experiment ---------- #
     def run_experiment(self, test_data_list, *, prefer="algo_params", summarize=True):

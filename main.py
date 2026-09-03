@@ -8,6 +8,7 @@ import torch as th
 
 # Import Environment Information
 from Configuration.env_params import V2XParams
+from Configuration.param_loader import resolve_param_overrides
 from Environment.environment import Environ
 from Environment.environment_utility import *
 
@@ -87,6 +88,8 @@ def main():
                         help='Override training data CSV path.')
     parser.add_argument('--test_data', type=str, default=None,
                         help='Override test data CSV path.')
+    parser.add_argument('--config', type=str, default=None,
+                        help='Sparse JSON file overriding preset parameters (only changed fields needed).')
     args = parser.parse_args()
 
     if args.seed is not None:
@@ -160,11 +163,18 @@ def main():
         # print("="*60 + "\n")
         task_label = get_task_label(args.env, args.loc)
 
+        param_overrides, preset_path, _ = resolve_param_overrides(
+            args.algo, args.env, args.loc, args.config
+        )
+
         print("\n" + "="*60)
         print("EXPERIMENT CONFIGURATION")
         print("="*60)
         print(f"Task:           {task_label}")
         print(f"Algorithm:      {args.algo}")
+        print(f"Preset:         {preset_path if preset_path else 'none (class defaults)'}")
+        if args.config:
+            print(f"User Config:    {args.config}")
         print(f"Num Agents:     {env_params.n_agent}")
         print(f"Train Data:     {getattr(env_params, 'train_data_path', 'N/A')}")
         print(f"Test Data:      {getattr(env_params, 'test_data_path', 'N/A')}")
@@ -183,15 +193,15 @@ def main():
             # Create the runner
             # More runners can be added here
             if args.algo in ("ia2c", "maa2c", "ippo", "mappo"):
-                runner = PolicyGradientRunner(env, args.env, env_params, algo=args.algo)
+                runner = PolicyGradientRunner(env, args.env, env_params, algo=args.algo, param_overrides=param_overrides)
             elif args.algo == 'idql':
-                runner = IDQLrunner(env, args.env, env_params, False)
+                runner = IDQLrunner(env, args.env, env_params, False, param_overrides=param_overrides)
             elif args.algo == 'hys':
-                runner = IDQLrunner(env, args.env, env_params, True)
+                runner = IDQLrunner(env, args.env, env_params, True, param_overrides=param_overrides)
             elif args.algo == 'vdn':
-                runner = QMIXrunner(env, args.env, env_params, True)
+                runner = QMIXrunner(env, args.env, env_params, True, param_overrides=param_overrides)
             elif args.algo == 'qmix':
-                runner = QMIXrunner(env, args.env, env_params, False)
+                runner = QMIXrunner(env, args.env, env_params, False, param_overrides=param_overrides)
             else:
                 raise ValueError("Algorithm name incorrect or not found")
         else:
