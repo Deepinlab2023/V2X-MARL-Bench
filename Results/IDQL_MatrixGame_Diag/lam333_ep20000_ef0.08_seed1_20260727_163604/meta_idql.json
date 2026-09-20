@@ -1,0 +1,41 @@
+{
+  "density": 333,
+  "seed": 1,
+  "episodes": 20000,
+  "lr": 0.0001,
+  "tau": 0.01,
+  "batch_size": 64,
+  "gamma": 0.9,
+  "memory_capacity": 500,
+  "hidden_dim": 128,
+  "epsilon": {
+    "type": "linear_then_constant",
+    "start": 1.0,
+    "final": 0.08,
+    "anneal_from_ep": 0,
+    "anneal_to_ep": 16000,
+    "formula": "eps(t) = 1.0 - t*(1-epsi_final)/(epsi_anneal-1)  if t<epsi_anneal  else epsi_final"
+  },
+  "initial_greedy_actions": [
+    4,
+    3,
+    2,
+    3,
+    4,
+    1,
+    1,
+    3,
+    0,
+    0,
+    1,
+    1,
+    0,
+    3,
+    0,
+    4
+  ],
+  "first_flip_episode": 70,
+  "Q_answer_a_sync_update": "NOT fully synchronous. All 16 agents update sequentially within each episode: for i in 0..15: optimize_model(i); soft_update_target_net(i). Agent i's update sees a slightly different target net than agent i+1's, because soft_update_target_net(i) runs before optimize_model(i+1).",
+  "Q_answer_b_warmup": "optimize_model() is a no-op until buffer has >= batch_size=64 transitions. So first 64 episodes produce no weight update. First observed flip: ep=70.",
+  "Q_answer_c_eval": "Evaluation: set eps=0 for all agents, call select_action once per agent (argmax Q, deterministic). Single trial. loads column = load from this single greedy trial. eval_idql.csv stores raw joint actions for last 10 checkpoints."
+}

@@ -12,7 +12,7 @@ class PPOparameters:
     def __init__(self):
         # Experiment control
         self.num_trials = 1
-        self.training_episodes = 100000
+        self.training_episodes = 50000
         self.batch_size = 256
         # Optimizer / GAE
         self.alpha = 0.0004
@@ -24,10 +24,10 @@ class PPOparameters:
         self.critic_hidden_dim = 128
         self.value_dim = 1
         # PPO hyperparams
-        self.entropy_coef = 0.001
+        self.entropy_coef = 0.01
         self.eps_clip = 0.2
         self.num_mini_batches = 4
-        self.epochs = 10
+        self.epochs = 5
         # Derived scheduling
         self.test_interval = self.training_episodes / 100
         self.num_training_iteration = math.ceil(self.training_episodes / self.batch_size)
@@ -39,6 +39,14 @@ class PPOparameters:
         self.popart = True
         self.critic_rescale = True  # only meaningful if popart=True
         self.action_masking = True
+
+        # -------------------------
+        # Parameter sharing
+        # -------------------------
+        # no_sharing:
+        #   False → shared actor/critic (1 network, agent_id one-hot as input)
+        #   True  → independent actors/critics per agent (N separate networks)
+        self.no_sharing = True
 
         # -------------------------
         # Partial observability toggles / misc

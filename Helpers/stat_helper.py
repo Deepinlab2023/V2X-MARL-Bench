@@ -136,6 +136,9 @@ def compute_greedy_baseline(
         
         # Prepass: compute solo service per agent×action
         prepass_env = copy.deepcopy(base_env)
+        if prepass_env.fast_fading_enabled:
+            prepass_env._renew_fast_fading()
+            prepass_env._fading_frozen = True
         base_q = flatten_q(prepass_env.queue)
         per_action_service = [np.zeros(action_dim, dtype=float) for _ in range(num_agents)]
         per_agent_best = np.zeros(num_agents, dtype=float)
@@ -194,6 +197,11 @@ def compute_greedy_baseline(
                 per_step_rewards.append(float(np.asarray(global_reward).reshape(-1)[0]))
                 continue
             
+            # Freeze fading for this step so all candidates see the same channel
+            if run_env.fast_fading_enabled:
+                run_env._renew_fast_fading()
+                run_env._fading_frozen = True
+
             # Build candidate lists
             cand_lists = [candidate_actions_for_agent(ag, qnow[ag]) for ag in range(num_agents)]
             
@@ -278,6 +286,7 @@ def compute_greedy_baseline(
             # Execute
             RRA = rra_from_joint_actions(assigned)
             global_reward, _ = run_env.step(RRA.copy(), t)
+            run_env._fading_frozen = False
             per_step_rewards.append(float(np.asarray(global_reward).reshape(-1)[0]))
         
         return float(sum(per_step_rewards))
@@ -417,6 +426,11 @@ def compute_exhaustive_baseline(
                 per_step_rewards.append(float(np.asarray(global_reward).reshape(-1)[0]))
                 continue
             
+            # Freeze fading for this step so all candidates see the same channel
+            if run_env.fast_fading_enabled:
+                run_env._renew_fast_fading()
+                run_env._fading_frozen = True
+
             # 1) Determine valid action space for each agent
             valid_actions_per_agent: List[List[int]] = []
             for ag in range(num_agents):
@@ -447,6 +461,7 @@ def compute_exhaustive_baseline(
             # 4) Execute the optimal joint action
             RRA = rra_from_joint_actions(optimal_joint_action)
             global_reward, _ = run_env.step(RRA.copy(), t)
+            run_env._fading_frozen = False
             per_step_rewards.append(float(np.asarray(global_reward).reshape(-1)[0]))
             
             if print_per_step:

@@ -77,3 +77,49 @@ class PPOSharedActor(nn.Module):
         action = dist.sample()
         log_prob = dist.log_prob(action)
         return action, log_prob, dist
+
+
+class PPOActorNS(nn.Module):
+    """
+    Independent actor (no parameter sharing) for IPPO.
+
+    Input: [state] only (no agent_id).
+    One instance per agent.
+    """
+
+    def __init__(self, input_dim: int, action_dim: int, hidden_dim: int):
+        super().__init__()
+        self.action_dim = action_dim
+
+        self.fc1 = nn.Linear(input_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.fc3 = nn.Linear(hidden_dim, action_dim)
+
+        self.initialize_weights()
+
+    def initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.orthogonal_(m.weight)
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, state: th.Tensor) -> th.Tensor:
+        single = False
+        if state.dim() == 1:
+            state = state.unsqueeze(0)
+            single = True
+
+        x = th.tanh(self.fc1(state))
+        x = th.tanh(self.fc2(x))
+        logits = self.fc3(x)
+
+        if single:
+            logits = logits.squeeze(0)
+        return logits
+
+    def action_sampler(self, logits: th.Tensor, queue=None):
+        logits = _mask_logits_with_queue(logits, queue)
+        dist = Categorical(logits=logits)
+        action = dist.sample()
+        log_prob = dist.log_prob(action)
+        return action, log_prob, dist

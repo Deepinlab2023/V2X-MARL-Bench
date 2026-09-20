@@ -1,0 +1,27 @@
+P3 epsilon-diagnosis summary (30 runs, old final batch ec=0.001)
+utility u_i = Phi (common reward, identical-interest game, = training signal)
+
+[IDQN low] exact PNE 0/5
+    non-PNE 5  epsilon_over_opt min/mean/max = 0.004997/0.005389/0.006014
+[IDQN mid] exact PNE 0/5
+    non-PNE 5  epsilon_over_opt min/mean/max = 0.003191/0.003835/0.004950
+[IDQN high] exact PNE 3/5  (v0x3)
+    non-PNE 2  epsilon_over_opt min/mean/max = 0.002087/0.002231/0.002375
+  >> IDQN overall non-PNE: 12/15, epsilon_over_opt min/mean/max = 0.002087/0.004215/0.006014
+[IPPO low] exact PNE 5/5  (v1x5)
+[IPPO mid] exact PNE 5/5  (v1x5)
+[IPPO high] exact PNE 5/5  (v0x2, v1x3)
+
+All non-PNE runs (load vector -> best profitable deviation):
+  idqn high seed10: (9, 1, 1, 1)  eps=0.2632 (0.002375)  |  silent agent -> SC1(load=9), gain=0.2632
+  idqn high seed91: (10, 1, 1, 1)  eps=0.2313 (0.002087)  |  silent agent -> SC1(load=10), gain=0.2313
+  idqn low seed9: (11, 1, 1, 1)  eps=0.5419 (0.005468)  |  silent agent -> SC1(load=11), gain=0.5419
+  idqn low seed10: (10, 1, 1, 1)  eps=0.5960 (0.006014)  |  silent agent -> SC1(load=10), gain=0.5960
+  idqn low seed12: (12, 1, 1, 1)  eps=0.4952 (0.004997)  |  silent agent -> SC1(load=12), gain=0.4952
+  idqn low seed87: (11, 1, 1, 1)  eps=0.5419 (0.005468)  |  silent agent -> SC1(load=11), gain=0.5419
+  idqn low seed91: (12, 1, 1, 1)  eps=0.4952 (0.004997)  |  silent agent -> SC1(load=12), gain=0.4952
+  idqn mid seed9: (8, 1, 1, 1)  eps=0.5257 (0.004950)  |  silent agent -> SC1(load=8), gain=0.5257
+  idqn mid seed10: (10, 1, 1, 1)  eps=0.4165 (0.003921)  |  silent agent -> SC1(load=10), gain=0.4165
+  idqn mid seed12: (12, 1, 1, 1)  eps=0.3389 (0.003191)  |  silent agent -> SC1(load=12), gain=0.3389
+  idqn mid seed87: (12, 1, 1, 1)  eps=0.3389 (0.003191)  |  silent agent -> SC1(load=12), gain=0.3389
+  idqn mid seed91: (10, 1, 1, 1)  eps=0.4165 (0.003921)  |  silent agent -> SC1(load=10), gain=0.4165

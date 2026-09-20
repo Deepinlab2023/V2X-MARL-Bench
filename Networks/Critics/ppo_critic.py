@@ -87,3 +87,31 @@ class PPOSharedCritic(_PPOBaseCritic):
         if single:
             v = v.squeeze(0)
         return v
+
+
+class PPOCriticNS(_PPOBaseCritic):
+    """
+    Independent critic (no parameter sharing) for IPPO.
+
+    Input: [state] only (no agent_id).
+    One instance per agent.
+    """
+    def __init__(self, input_dim: int, hidden_dim: int, value_dim: int):
+        super().__init__(
+            input_dim=input_dim,
+            hidden_dim=hidden_dim,
+            value_dim=value_dim,
+        )
+
+    def forward(self, state: th.Tensor) -> th.Tensor:
+        single = False
+
+        if state.dim() == 1:
+            state = state.unsqueeze(0)
+            single = True
+
+        v = self._forward_mlp(state)
+
+        if single:
+            v = v.squeeze(0)
+        return v

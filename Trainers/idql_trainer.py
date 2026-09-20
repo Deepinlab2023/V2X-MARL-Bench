@@ -73,7 +73,7 @@ class IDQLtrainerNS:
 
         # --- Epsilon schedule (linear decay over 80% of training) ---
         epsi_start = 1.0
-        epsi_final = 0.05
+        epsi_final = 0.15
         epsi_anneal_episodes = int(0.8 * algo_params.training_episodes)
 
         episode_rewards = []
