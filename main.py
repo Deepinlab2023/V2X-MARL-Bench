@@ -90,6 +90,9 @@ def main():
                         help='Override test data CSV path.')
     parser.add_argument('--config', type=str, default=None,
                         help='Sparse JSON file overriding preset parameters (only changed fields needed).')
+    parser.add_argument('--save_model', action=argparse.BooleanOptionalAction, default=True,
+                        help='Save the trained model checkpoint once training fully completes '
+                             '(idql/hys/ippo only). Use --no-save_model to disable.')
     args = parser.parse_args()
 
     if args.seed is not None:
@@ -193,11 +196,11 @@ def main():
             # Create the runner
             # More runners can be added here
             if args.algo in ("ia2c", "maa2c", "ippo", "mappo"):
-                runner = PolicyGradientRunner(env, args.env, env_params, algo=args.algo, param_overrides=param_overrides)
+                runner = PolicyGradientRunner(env, args.env, env_params, algo=args.algo, param_overrides=param_overrides, save_model=args.save_model)
             elif args.algo == 'idql':
-                runner = IDQLrunner(env, args.env, env_params, False, param_overrides=param_overrides)
+                runner = IDQLrunner(env, args.env, env_params, False, param_overrides=param_overrides, save_model=args.save_model)
             elif args.algo == 'hys':
-                runner = IDQLrunner(env, args.env, env_params, True, param_overrides=param_overrides)
+                runner = IDQLrunner(env, args.env, env_params, True, param_overrides=param_overrides, save_model=args.save_model)
             elif args.algo == 'vdn':
                 runner = QMIXrunner(env, args.env, env_params, True, param_overrides=param_overrides)
             elif args.algo == 'qmix':

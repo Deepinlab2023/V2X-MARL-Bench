@@ -6,6 +6,6 @@
     "batch_size": 256,
     "num_mini_batches": 4,
     "epochs": 10,
-    "entropy_coef": 0.01,
-    "training_episodes": 30000
+    "entropy_coef": 0.001,
+    "training_episodes": 100000
 }

@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import torch as th
 import torch.nn.functional as F
@@ -67,10 +69,22 @@ class IPPO_TrainerPS:
                 batch = self._normalize_returns(batch)
                 self._ppo_update_epochs(batch)
 
+            if getattr(p, "save_model", True):
+                self._save_model()
+
         finally:
             self.csv_file.close()
 
         return [], self.test_rewards
+
+    def _save_model(self):
+        model_dir = os.path.join(os.path.dirname(self.csv_file.name), "models")
+        os.makedirs(model_dir, exist_ok=True)
+        model_name = os.path.basename(self.csv_file.name).replace(".csv", ".pt")
+        th.save(
+            {"actor": self.actor_shared.state_dict(), "critic": self.critic_shared.state_dict()},
+            os.path.join(model_dir, model_name),
+        )
 
     # ==========================
     #   NETWORKS / OPTIMIZERS

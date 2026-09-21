@@ -453,7 +453,7 @@ class Environ:
             global_reward: Reward for this step, shape (1, 1)
             done: Whether episode has ended
         """
-        if self.fast_fading_enabled:
+        if self.fast_fading_enabled and not getattr(self, '_fading_frozen', False):
             self._renew_fast_fading()
 
         action_temp = actions.copy()

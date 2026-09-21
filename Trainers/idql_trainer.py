@@ -42,6 +42,7 @@ class IDQLtrainerNS:
         algo_params,
         algo_name="IDQL",
         trial_run=0,
+        save_model=True,
     ):
         # --- Determine input dimension based on task type ---
         if env_name == "POSIG":
@@ -250,4 +251,14 @@ class IDQLtrainerNS:
             episode_rewards.append(np.mean(total_rewards))
 
         csv_file.close()
+
+        if save_model:
+            model_dir = os.path.join(out_dir, "models")
+            os.makedirs(model_dir, exist_ok=True)
+            model_path = os.path.join(model_dir, csv_name.replace(".csv", ".pt"))
+            th.save(
+                {f"agent_{ag_idx}": agent.q_net.state_dict() for ag_idx, agent in enumerate(agent_list)},
+                model_path,
+            )
+
         return episode_rewards, test_rewards

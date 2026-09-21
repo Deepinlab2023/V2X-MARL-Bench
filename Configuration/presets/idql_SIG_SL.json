@@ -1,0 +1,9 @@
+{
+    "hidden_dim": 128,
+    "lr": 3e-5,
+    "hysteretic_high_lr": 1.0,
+    "hysteretic_low_lr": 0.2,
+    "batch_size": 64,
+    "tau": 0.005,
+    "training_episodes": 3000
+}

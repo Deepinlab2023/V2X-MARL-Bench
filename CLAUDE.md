@@ -22,20 +22,20 @@ python main.py --env <ENV> --algo <ALGO> [--loc <LOC>] [--seed <SEED>]
 
 - `--env`: `NFIG` (single-step, no fading), `SIG` (50-step, full observability), or `POSIG` (50-step, partial observability)
 - `--algo`: `idql`, `hys`, `vdn`, `qmix`, `ia2c`, `maa2c`, `ippo`, `mappo`
-- `--loc`: Location index `0.0`–`8.0`, only used for NFIG and SIG single-location runs
+- `--loc`: Location index `0`–`8` (integer only), only used for NFIG and SIG single-location runs
 - `--seed`: Optional integer seed for reproducible experiments (seeds NumPy, Python random, and PyTorch)
 
 ```bash
-python main.py --env NFIG --algo idql --loc 0.0        # Single-step, value-based
+python main.py --env NFIG --algo idql --loc 0           # Single-step, value-based
 python main.py --env SIG --algo mappo                   # Multi-location (omit --loc)
-python main.py --env SIG --algo maa2c --loc 2.5        # Single-location
+python main.py --env SIG --algo maa2c --loc 3           # Single-location
 python main.py --env POSIG --algo ippo                  # Partial observability
 python main.py --env SIG --algo mappo --seed 42         # Reproducible run
 ```
 
 Results are saved as CSV files in `Results/<algo_name>/` (auto-created). Filename format:
 `{algo}_{task}_{n_agent}ag_{n_sc}sc_{ff_tag}[_{features}]_trial{n}_{timestamp}.csv`
-e.g. `IA2C_NFIG_loc2.5_4ag_4sc_NFF_MASK_NORM_trial0_20260326_153416.csv`
+e.g. `IA2C_NFIG_loc3_4ag_4sc_NFF_MASK_NORM_trial0_20260326_153416.csv`
 
 The naming logic lives in `build_csv_name()` in `Environment/environment_utility.py`.
 

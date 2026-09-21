@@ -23,7 +23,7 @@ class PolicyGradientRunner:
 
     _SUPPORTED = ("ia2c", "maa2c", "ippo", "mappo")
 
-    def __init__(self, env, task_type, env_params, algo: str, param_overrides=None):
+    def __init__(self, env, task_type, env_params, algo: str, param_overrides=None, save_model=True):
         if algo not in self._SUPPORTED:
             raise ValueError(
                 f"PolicyGradientRunner: unsupported algo '{algo}'. "
@@ -34,6 +34,7 @@ class PolicyGradientRunner:
         self.env_params = env_params
         self.algo = algo
         self.param_overrides = param_overrides
+        self.save_model = save_model
 
     # ---------- param merge ---------- #
     def combine_params(self, algo_params, test_data_list, *, prefer="algo_params"):
@@ -48,6 +49,7 @@ class PolicyGradientRunner:
         p.env = self.env
         p.algo_params = algo_params
         p.task_type = self.task_type
+        p.save_model = self.save_model
 
         # 1) copy algorithm parameters
         for k, v in vars(algo_params).items():
