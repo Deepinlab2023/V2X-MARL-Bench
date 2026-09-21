@@ -213,7 +213,7 @@ class PPOHelper:
 
         for t in reversed(range(T)):
             mask = 1.0 - float(dones[t])
-            r_t = float(rewards[t])
+            r_t = float(np.asarray(rewards[t]).reshape(-1)[0])
 
             R = r_t + gamma * R * mask
             returns[t] = R

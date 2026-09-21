@@ -8,9 +8,20 @@ import torch as th
 
 # Import Environment Information
 from Configuration.env_params import V2XParams
-from Configuration.param_loader import resolve_param_overrides
+from Configuration.param_loader import resolve_param_overrides, apply_overrides, ALGO_FAMILY
+from Configuration.idql_params import IDQLparameters
+from Configuration.qmix_params import QMIXparameters
+from Configuration.a2c_params import A2Cparameters
+from Configuration.ppo_params import PPOparameters
 from Environment.environment import Environ
 from Environment.environment_utility import *
+
+_PARAM_CLASS_BY_FAMILY = {
+    "idql": IDQLparameters,
+    "qmix": QMIXparameters,
+    "a2c": A2Cparameters,
+    "ppo": PPOparameters,
+}
 
 # Import Runners
 from Runners.policy_gradient_runner import PolicyGradientRunner
@@ -114,8 +125,11 @@ def main():
             env_params.n_agent = args.n_agent
             env_params.n_veh_per_platoon = [2] * args.n_agent
             env_params.n_veh = 2 * args.n_agent
-            if args.train_data is None:
-                env_params._load_vehicle_data()
+            # Always reload both default paths for the new n_agent first —
+            # _load_vehicle_data() is the only place that sets test_data_path
+            # correctly. Any --train_data/--test_data override below then
+            # takes precedence over these n_agent-derived defaults.
+            env_params._load_vehicle_data()
             env_params.agent_to_veh = env_params._build_agent_to_veh_mapping()
         if args.train_data is not None:
             env_params.train_data = load_veh_pos(args.train_data)
@@ -170,6 +184,13 @@ def main():
             args.algo, args.env, args.loc, args.config
         )
 
+        # Build a throwaway params instance purely to display the final
+        # training_episodes (preset + --config merged) before the runner
+        # constructs its own copy of the same params.
+        _preview_params = _PARAM_CLASS_BY_FAMILY[ALGO_FAMILY[args.algo]]()
+        apply_overrides(_preview_params, param_overrides)
+        training_episodes = _preview_params.training_episodes
+
         print("\n" + "="*60)
         print("EXPERIMENT CONFIGURATION")
         print("="*60)
@@ -181,6 +202,7 @@ def main():
         print(f"Num Agents:     {env_params.n_agent}")
         print(f"Train Data:     {getattr(env_params, 'train_data_path', 'N/A')}")
         print(f"Test Data:      {getattr(env_params, 'test_data_path', 'N/A')}")
+        print(f"Train Episodes: {training_episodes}")
         print(f"Test Episodes:  {len(test_data_list)}")
         print(f"Steps/Episode:  {env_params.n_step_per_episode}")
         print(f"Fast Fading:    {env_params.fast_fading_tag}")

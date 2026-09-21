@@ -168,8 +168,9 @@ class Environ:
             action_val = action.cpu().numpy()
         else:
             action_val = action
-        sc_idx = int(np.floor(action_val / self.n_power_levels))
-        power_level_idx = action % self.n_power_levels
+        action_val = int(np.asarray(action_val).reshape(-1)[0])
+        sc_idx = action_val // self.n_power_levels
+        power_level_idx = action_val % self.n_power_levels
 
         return sc_idx, power_level_idx
 
