@@ -1,4 +1,6 @@
 class QMIXparameters:
+    DERIVED_FIELDS = ("test_interval",)
+
     def __init__(self):
         # Training
         self.num_trials = 1
@@ -8,7 +10,6 @@ class QMIXparameters:
         self.tau = 0.005
 
         # Testing
-        self.test_interval = self.training_episodes / 100
         self.num_test_episodes = 9
 
         # Agent network
@@ -28,4 +29,9 @@ class QMIXparameters:
 
         # Environment constraints
         self.force_nt_when_empty = False
+
+        self._derive()
+
+    def _derive(self):
+        self.test_interval = self.training_episodes / 100
 

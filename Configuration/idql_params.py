@@ -1,4 +1,6 @@
 class IDQLparameters:
+    DERIVED_FIELDS = ("test_interval",)
+
     def __init__(self):
         # Training
         self.num_trials = 1
@@ -6,10 +8,9 @@ class IDQLparameters:
         self.batch_size = 64
         self.gamma = 0.9
         self.tau = 0.005
-        self.lr = 1e-5
+        self.lr = 3e-5
 
         # Testing
-        self.test_interval = self.training_episodes / 100
         self.num_test_episodes = 9
 
         # Network
@@ -24,4 +25,9 @@ class IDQLparameters:
 
         # Environment constraints
         self.force_nt_when_empty = False
+
+        self._derive()
+
+    def _derive(self):
+        self.test_interval = self.training_episodes / 100
 
