@@ -44,6 +44,10 @@ class IPPO_TrainerPS:
             self.value_normalizer,
         ) = self._init_networks_and_optimizers()
 
+        self.actor_lr = params.alpha
+        if getattr(params, "lr_schedule", "constant") == "adaptive" and getattr(params, "target_kl", None) is None:
+            raise ValueError("lr_schedule='adaptive' needs target_kl to be set.")
+
         self.test_rewards = []
         self.episode = 0
 
@@ -106,8 +110,9 @@ class IPPO_TrainerPS:
         if p.popart:
             value_normalizer = ValueNormalizer(critic_shared.fc3, p.critic_rescale)
 
-        actor_optimizer = th.optim.Adam(actor_shared.parameters(), lr=p.alpha)
-        critic_optimizer = th.optim.Adam(critic_shared.parameters(), lr=p.beta)
+        adam_eps = getattr(p, "adam_eps", 1e-8)
+        actor_optimizer = th.optim.Adam(actor_shared.parameters(), lr=p.alpha, eps=adam_eps)
+        critic_optimizer = th.optim.Adam(critic_shared.parameters(), lr=p.beta, eps=adam_eps)
 
         return actor_shared, critic_shared, actor_optimizer, critic_optimizer, value_normalizer
 
@@ -208,6 +213,9 @@ class IPPO_TrainerPS:
                     rra[a, 0, 1] = pw
 
                     v = self.critic_shared(obs, agent_id) if task_type == "POSIG" else self.critic_shared(global_state, agent_id)
+                    if p.popart:
+                        # PopArt head is normalized; GAE needs raw-scale values to match raw rewards
+                        v = self.value_normalizer.denormalize(v)
                     values.append(v.squeeze().detach())
 
             joint_action = th.tensor(actions, dtype=th.long, device=device)
@@ -274,7 +282,10 @@ class IPPO_TrainerPS:
             batch_advantages,
         ) = batch
 
-        batch_returns = PPOHelper.normalize_returns(batch_returns, p.popart, self.value_normalizer)
+        # popart=False: keep raw returns so the critic, the rollout values and GAE share one scale
+        # (PPOHelper.normalize_returns would batch-normalize the targets while GAE uses raw rewards).
+        if p.popart:
+            batch_returns = PPOHelper.normalize_returns(batch_returns, p.popart, self.value_normalizer)
 
         return (
             batch_states,
@@ -323,7 +334,14 @@ class IPPO_TrainerPS:
         mini_batch_size = max(1, len(dataset) // p.num_mini_batches)
         dataloader = th.utils.data.DataLoader(dataset, batch_size=mini_batch_size, shuffle=True)
 
+        target_kl = getattr(p, "target_kl", None)
+        max_grad_norm = getattr(p, "max_grad_norm", None)
+        mb_kls = []  # per-minibatch approx KL to the rollout policy
+        early_stop = False
+
         for _ in range(p.epochs):
+            if early_stop:
+                break
             for mb in dataloader:
                 observations_mb, global_states_mb, joint_actions_mb, log_probs_mb, values_mb, returns_mb, advantages_mb = (
                     self._unpack_minibatch(mb)
@@ -345,23 +363,32 @@ class IPPO_TrainerPS:
                     critic_input = observations_mb[:, a, :] if task_type == "POSIG" else global_states_mb
                     values_pred = self.critic_shared(critic_input, agent_id).squeeze(-1)
 
-                    critic_loss = PPOHelper.critic_loss_fn(
-                        values_pred,
-                        values_mb[:, a],
-                        returns_mb,
-                        p.eps_clip,
-                        p.popart,
-                        self.value_normalizer,
-                    )
+                    if p.popart:
+                        critic_loss = PPOHelper.critic_loss_fn(
+                            values_pred,
+                            values_mb[:, a],
+                            returns_mb,
+                            p.eps_clip,
+                            p.popart,
+                            self.value_normalizer,
+                            head_is_normalized=True,
+                        )
+                    else:
+                        # Raw-scale returns: plain MSE. Value clipping with eps_clip=0.2 would cap the
+                        # critic at 0.2 return-units per update on returns of ~60-80.
+                        critic_loss = (values_pred - returns_mb).pow(2).mean()
                     total_critic_loss += critic_loss
 
                 total_critic_loss = total_critic_loss / n_agent
                 total_critic_loss.backward()
+                if max_grad_norm is not None:
+                    th.nn.utils.clip_grad_norm_(self.critic_shared.parameters(), max_grad_norm)
                 self.critic_optimizer.step()
 
                 # ---- Actor update ----
                 self.actor_optimizer.zero_grad()
                 total_actor_loss = 0.0
+                agent_kls = []
 
                 for a in range(n_agent):
                     agent_id = F.one_hot(th.tensor(a), num_classes=n_agent).float()
@@ -393,6 +420,32 @@ class IPPO_TrainerPS:
                     actor_loss = actor_loss - p.entropy_coef * entropy
                     total_actor_loss += actor_loss
 
+                    # Approx KL over steps where the agent still has data (masked steps are trivial)
+                    with th.no_grad():
+                        active = ~done_mask if p.action_masking else th.ones_like(action, dtype=th.bool)
+                        if active.any():
+                            agent_kls.append(float((old_log_prob - new_log_prob)[active].mean()))
+
+                # KL early stopping: the policy already drifted too far from the rollout policy
+                if agent_kls:
+                    mb_kls.append(float(np.mean(agent_kls)))
+                    if target_kl is not None and mb_kls[-1] > 1.5 * target_kl:
+                        early_stop = True
+                        break
+
                 total_actor_loss = total_actor_loss / n_agent
                 total_actor_loss.backward()
+                if max_grad_norm is not None:
+                    th.nn.utils.clip_grad_norm_(self.actor_shared.parameters(), max_grad_norm)
                 self.actor_optimizer.step()
+
+        # Adaptive actor lr: judge the update by how far it moved the policy (max minibatch KL;
+        # the first minibatch of every update is ~0, so per-minibatch adaptation would undo itself).
+        if getattr(p, "lr_schedule", "constant") == "adaptive" and mb_kls:
+            kl_ref = max(mb_kls)
+            if kl_ref > 2.0 * target_kl:
+                self.actor_lr = max(self.actor_lr / 1.5, p.alpha / 100)
+            elif kl_ref < target_kl / 2.0:
+                self.actor_lr = min(self.actor_lr * 1.5, p.alpha)
+            for g in self.actor_optimizer.param_groups:
+                g["lr"] = self.actor_lr

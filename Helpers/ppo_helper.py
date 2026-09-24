@@ -87,12 +87,21 @@ class PPOHelper:
         return -th.min(surr1, surr2).mean()
 
     @staticmethod
-    def critic_loss_fn(values, old_values, returns, clip_param, popart, value_normalizer):
+    def critic_loss_fn(values, old_values, returns, clip_param, popart, value_normalizer,
+                       head_is_normalized=False):
+        """
+        popart=True:  `returns` are normalized targets, `old_values` are rollout values in raw scale.
+        head_is_normalized=True (IPPO): `values` is the PopArt head output, already in normalized
+            space — the correct PopArt semantics (raw value = sigma * head + mu).
+        head_is_normalized=False (legacy, still used by MAPPO): `values` is normalized again here,
+            which makes the head learn raw-scale returns while ValueNormalizer.update() rescales it
+            as if it were normalized.
+        """
         if popart:
             sigma = value_normalizer.sigma + 1e-8
             mu = value_normalizer.mu
 
-            normalized_values = (values - mu) / sigma
+            normalized_values = values if head_is_normalized else (values - mu) / sigma
             normalized_old = (old_values - mu) / sigma
 
             value_clip = normalized_old + th.clamp(
@@ -528,3 +537,6 @@ class ValueNormalizer:
 
     def normalize(self, x):
         return (x - self.mu) / (self.sigma + 1e-8)
+
+    def denormalize(self, x):
+        return x * (self.sigma + 1e-8) + self.mu
