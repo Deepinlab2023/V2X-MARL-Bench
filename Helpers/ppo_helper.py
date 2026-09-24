@@ -87,37 +87,29 @@ class PPOHelper:
         return -th.min(surr1, surr2).mean()
 
     @staticmethod
-    def critic_loss_fn(values, old_values, returns, clip_param, popart, value_normalizer,
-                       head_is_normalized=False):
+    def critic_loss_fn(values, old_values, returns, clip_param, popart, value_normalizer):
         """
-        popart=True:  `returns` are normalized targets, `old_values` are rollout values in raw scale.
-        head_is_normalized=True (IPPO): `values` is the PopArt head output, already in normalized
-            space — the correct PopArt semantics (raw value = sigma * head + mu).
-        head_is_normalized=False (legacy, still used by MAPPO): `values` is normalized again here,
-            which makes the head learn raw-scale returns while ValueNormalizer.update() rescales it
-            as if it were normalized.
+        popart=True:  `values` is the PopArt head output, in normalized space (raw value = sigma * head + mu);
+            `returns` are normalized targets; `old_values` are rollout values in raw scale.
+            Clipped value loss in normalized space.
+        popart=False: `values` and `returns` are raw-scale; plain MSE. No value clipping: eps_clip on
+            raw returns (~60-80) would cap the critic at eps_clip return-units per update.
         """
-        if popart:
-            sigma = value_normalizer.sigma + 1e-8
-            mu = value_normalizer.mu
+        if not popart:
+            return (values - returns).pow(2).mean()
 
-            normalized_values = values if head_is_normalized else (values - mu) / sigma
-            normalized_old = (old_values - mu) / sigma
+        sigma = value_normalizer.sigma + 1e-8
+        mu = value_normalizer.mu
+        normalized_old = (old_values - mu) / sigma
 
-            value_clip = normalized_old + th.clamp(
-                normalized_values - normalized_old,
-                -clip_param,
-                clip_param,
-            )
+        value_clip = normalized_old + th.clamp(
+            values - normalized_old,
+            -clip_param,
+            clip_param,
+        )
 
-            loss_unclipped = (normalized_values - returns).pow(2)
-            loss_clipped = (value_clip - returns).pow(2)
-
-        else:
-            value_clip = old_values + th.clamp(values - old_values, -clip_param, clip_param)
-            loss_unclipped = (values - returns).pow(2)
-            loss_clipped = (value_clip - returns).pow(2)
-
+        loss_unclipped = (values - returns).pow(2)
+        loss_clipped = (value_clip - returns).pow(2)
         return th.max(loss_unclipped, loss_clipped).mean()
 
     # -------------------------
@@ -242,14 +234,63 @@ class PPOHelper:
     # -------------------------
     @staticmethod
     def normalize_returns(batch_returns, popart: bool, value_normalizer):
-        if popart and value_normalizer is not None:
+        """
+        popart=True:  update the PopArt statistics and return normalized targets.
+        popart=False: return raw targets, so the critic, the rollout values and GAE (raw rewards)
+            share one scale.
+        """
+        if popart:
             value_normalizer.update(batch_returns.view(-1))
             batch_returns = value_normalizer.normalize(batch_returns)
-        else:
-            rtrn_mean = batch_returns.mean()
-            rtrn_std = batch_returns.std(unbiased=False)
-            batch_returns = (batch_returns - rtrn_mean) / rtrn_std.clamp_min(1e-8)
         return batch_returns
+
+    # -------------------------
+    # Optimizers & update stabilization (shared by IPPO and MAPPO)
+    # -------------------------
+    @staticmethod
+    def check_stabilization_params(params):
+        lr_schedule = getattr(params, "lr_schedule", "constant")
+        if lr_schedule not in ("constant", "adaptive"):
+            raise ValueError(f"lr_schedule must be 'constant' or 'adaptive', got {lr_schedule!r}.")
+        if lr_schedule == "adaptive" and getattr(params, "target_kl", None) is None:
+            raise ValueError("lr_schedule='adaptive' needs target_kl to be set.")
+
+    @staticmethod
+    def make_optimizers(actor, critic, params):
+        """Adam for the actor (lr=alpha) and the critic (lr=beta), both with eps=adam_eps."""
+        adam_eps = getattr(params, "adam_eps", 1e-8)
+        actor_optimizer = th.optim.Adam(actor.parameters(), lr=params.alpha, eps=adam_eps)
+        critic_optimizer = th.optim.Adam(critic.parameters(), lr=params.beta, eps=adam_eps)
+        return actor_optimizer, critic_optimizer
+
+    @staticmethod
+    @th.no_grad()
+    def masked_approx_kl(new_log_prob, old_log_prob, active):
+        """Approx KL(rollout policy || current policy) = mean(old - new log-prob) over the active
+        steps (agent still has data; masked steps are trivial). None if no step is active."""
+        if not active.any():
+            return None
+        return float((old_log_prob - new_log_prob)[active].mean())
+
+    @staticmethod
+    def adapt_actor_lr(actor_optimizer, actor_lr, mb_kls, params):
+        """
+        lr_schedule="adaptive" (KL-based, as in rsl_rl / Rudin et al. 2021): judge the whole update
+        by its max minibatch KL (the first minibatch of every update is ~0, so per-minibatch
+        adaptation would undo itself); lr /= 1.5 if > 2*target_kl, lr *= 1.5 if < target_kl/2,
+        clamped to [alpha/100, alpha]. Returns the lr for the next update.
+        """
+        if getattr(params, "lr_schedule", "constant") != "adaptive" or not mb_kls:
+            return actor_lr
+        target_kl = params.target_kl
+        kl_ref = max(mb_kls)
+        if kl_ref > 2.0 * target_kl:
+            actor_lr = max(actor_lr / 1.5, params.alpha / 100)
+        elif kl_ref < target_kl / 2.0:
+            actor_lr = min(actor_lr * 1.5, params.alpha)
+        for g in actor_optimizer.param_groups:
+            g["lr"] = actor_lr
+        return actor_lr
 
     # -------------------------
     # MAPPO feature pruning utilities

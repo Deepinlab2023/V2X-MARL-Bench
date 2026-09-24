@@ -31,15 +31,17 @@ class PPOparameters:
         self.eps_clip = 0.2
         self.num_mini_batches = 4
         self.epochs = 10
-        # IPPO KL early stopping: before each actor step, if the minibatch's approx KL to the
+        # Update stabilization (IPPO and MAPPO). Defaults keep the original behaviour; see
+        # Configuration/experimental/ for a validated setting.
+        # KL early stopping: before each actor step, if the minibatch's approx KL to the
         # rollout policy exceeds 1.5 * target_kl, skip that step and end the update. None = off.
         self.target_kl = None
-        # IPPO actor learning-rate schedule: "constant", or "adaptive" (KL-based, as in rsl_rl /
+        # Actor learning-rate schedule: "constant", or "adaptive" (KL-based, as in rsl_rl /
         # Rudin et al. 2021): after each update, lr /= 1.5 if its max minibatch KL > 2*target_kl,
         # lr *= 1.5 if < target_kl/2, clamped to [alpha/100, alpha]. "adaptive" needs target_kl.
         self.lr_schedule = "constant"
-        # IPPO standard PPO details (OpenAI Baselines ppo2 / CleanRL use eps=1e-5, max_grad_norm=0.5).
-        # Defaults keep the original behaviour: PyTorch Adam eps and no gradient clipping.
+        # Standard PPO details (OpenAI Baselines ppo2 / CleanRL use eps=1e-5, max_grad_norm=0.5).
+        # Defaults: PyTorch Adam eps and no gradient clipping.
         self.adam_eps = 1e-8
         self.max_grad_norm = None
         # Derived scheduling
