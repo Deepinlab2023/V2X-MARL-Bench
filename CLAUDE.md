@@ -34,8 +34,8 @@ python main.py --env SIG --algo mappo --seed 42         # Reproducible run
 ```
 
 Results are saved as CSV files in `Results/<algo_name>/` (auto-created). Filename format:
-`{algo}_{task}_{n_agent}ag_{n_sc}sc_{ff_tag}[_{features}]_trial{n}_{timestamp}.csv`
-e.g. `IA2C_NFIG_loc3_4ag_4sc_NFF_MASK_NORM_trial0_20260326_153416.csv`
+`{algo}_{task}_{n_agent}ag_{n_sc}sc_{ff_tag}[_{features}][_seed{s}]_trial{n}_{timestamp}.csv`
+e.g. `IA2C_NFIG_loc3_4ag_4sc_NFF_MASK_NORM_seed42_trial0_20260326_153416.csv` (`seed{s}` only when `--seed` is given; model checkpoints reuse the same name with `.pt`)
 
 The naming logic lives in `build_csv_name()` in `Environment/environment_utility.py`.
 

@@ -48,6 +48,7 @@ class PPOHelper:
             trial_run=params.trial_run,
             ts=ts,
             loc=params.loc,
+            seed=getattr(params.env_params, "seed", None),
         )
 
         out_dir = os.path.join("Results", algo_name)

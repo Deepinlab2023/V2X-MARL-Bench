@@ -96,6 +96,7 @@ class IDQLtrainerNS:
             trial_run=trial_run,
             ts=ts,
             loc=env_params.loc,
+            seed=getattr(env_params, "seed", None),
         )
         out_dir = os.path.join("Results", algo_name)
         os.makedirs(out_dir, exist_ok=True)

@@ -121,6 +121,7 @@ def main():
 
         # Environment Variable Setup
         env_params = V2XParams(args.env, args.loc)
+        env_params.seed = args.seed
         if args.n_agent is not None:
             env_params.n_agent = args.n_agent
             env_params.n_veh_per_platoon = [2] * args.n_agent
@@ -201,7 +202,12 @@ def main():
             print(f"User Config:    {args.config}")
         print(f"Num Agents:     {env_params.n_agent}")
         print(f"Train Data:     {getattr(env_params, 'train_data_path', 'N/A')}")
-        print(f"Test Data:      {getattr(env_params, 'test_data_path', 'N/A')}")
+        if args.loc is not None:
+            # SIG_SL/NFIG: test_data_list is built from train_data at --loc
+            # (see the "SIG SL" branch above), not from env_params.test_data_path.
+            print(f"Test Data:      {getattr(env_params, 'train_data_path', 'N/A')} (loc={args.loc})")
+        else:
+            print(f"Test Data:      {getattr(env_params, 'test_data_path', 'N/A')}")
         print(f"Train Episodes: {training_episodes}")
         print(f"Test Episodes:  {len(test_data_list)}")
         print(f"Steps/Episode:  {env_params.n_step_per_episode}")

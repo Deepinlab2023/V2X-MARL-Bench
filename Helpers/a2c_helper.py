@@ -69,6 +69,7 @@ class A2CHelper:
             ts=ts,
             loc=params.loc,
             features=features,
+            seed=getattr(params.env_params, "seed", None),
         )
 
         out_dir = os.path.join("Results", effective_algo)
