@@ -1,0 +1,8 @@
+{
+    "hidden_dim": 128,
+    "agent_lr": 1e-5,
+    "mixer_lr": 1e-6,
+    "batch_size": 64,
+    "tau": 0.005,
+    "training_episodes": 30000
+}

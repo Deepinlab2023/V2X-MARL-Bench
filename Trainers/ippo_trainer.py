@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import torch as th
 import torch.nn.functional as F
@@ -42,6 +44,9 @@ class IPPO_TrainerPS:
             self.value_normalizer,
         ) = self._init_networks_and_optimizers()
 
+        PPOHelper.check_stabilization_params(params)
+        self.actor_lr = params.alpha
+
         self.test_rewards = []
         self.episode = 0
 
@@ -67,10 +72,22 @@ class IPPO_TrainerPS:
                 batch = self._normalize_returns(batch)
                 self._ppo_update_epochs(batch)
 
+            if getattr(p, "save_model", True):
+                self._save_model()
+
         finally:
             self.csv_file.close()
 
         return [], self.test_rewards
+
+    def _save_model(self):
+        model_dir = os.path.join(os.path.dirname(self.csv_file.name), "models")
+        os.makedirs(model_dir, exist_ok=True)
+        model_name = os.path.basename(self.csv_file.name).replace(".csv", ".pt")
+        th.save(
+            {"actor": self.actor_shared.state_dict(), "critic": self.critic_shared.state_dict()},
+            os.path.join(model_dir, model_name),
+        )
 
     # ==========================
     #   NETWORKS / OPTIMIZERS
@@ -92,8 +109,7 @@ class IPPO_TrainerPS:
         if p.popart:
             value_normalizer = ValueNormalizer(critic_shared.fc3, p.critic_rescale)
 
-        actor_optimizer = th.optim.Adam(actor_shared.parameters(), lr=p.alpha)
-        critic_optimizer = th.optim.Adam(critic_shared.parameters(), lr=p.beta)
+        actor_optimizer, critic_optimizer = PPOHelper.make_optimizers(actor_shared, critic_shared, p)
 
         return actor_shared, critic_shared, actor_optimizer, critic_optimizer, value_normalizer
 
@@ -194,6 +210,9 @@ class IPPO_TrainerPS:
                     rra[a, 0, 1] = pw
 
                     v = self.critic_shared(obs, agent_id) if task_type == "POSIG" else self.critic_shared(global_state, agent_id)
+                    if p.popart:
+                        # PopArt head is normalized; GAE needs raw-scale values to match raw rewards
+                        v = self.value_normalizer.denormalize(v)
                     values.append(v.squeeze().detach())
 
             joint_action = th.tensor(actions, dtype=th.long, device=device)
@@ -309,7 +328,14 @@ class IPPO_TrainerPS:
         mini_batch_size = max(1, len(dataset) // p.num_mini_batches)
         dataloader = th.utils.data.DataLoader(dataset, batch_size=mini_batch_size, shuffle=True)
 
+        target_kl = getattr(p, "target_kl", None)
+        max_grad_norm = getattr(p, "max_grad_norm", None)
+        mb_kls = []  # per-minibatch approx KL to the rollout policy
+        early_stop = False
+
         for _ in range(p.epochs):
+            if early_stop:
+                break
             for mb in dataloader:
                 observations_mb, global_states_mb, joint_actions_mb, log_probs_mb, values_mb, returns_mb, advantages_mb = (
                     self._unpack_minibatch(mb)
@@ -343,11 +369,14 @@ class IPPO_TrainerPS:
 
                 total_critic_loss = total_critic_loss / n_agent
                 total_critic_loss.backward()
+                if max_grad_norm is not None:
+                    th.nn.utils.clip_grad_norm_(self.critic_shared.parameters(), max_grad_norm)
                 self.critic_optimizer.step()
 
                 # ---- Actor update ----
                 self.actor_optimizer.zero_grad()
                 total_actor_loss = 0.0
+                agent_kls = []
 
                 for a in range(n_agent):
                     agent_id = F.one_hot(th.tensor(a), num_classes=n_agent).float()
@@ -379,6 +408,22 @@ class IPPO_TrainerPS:
                     actor_loss = actor_loss - p.entropy_coef * entropy
                     total_actor_loss += actor_loss
 
+                    active = ~done_mask if p.action_masking else th.ones_like(action, dtype=th.bool)
+                    kl = PPOHelper.masked_approx_kl(new_log_prob, old_log_prob, active)
+                    if kl is not None:
+                        agent_kls.append(kl)
+
+                # KL early stopping: the policy already drifted too far from the rollout policy
+                if agent_kls:
+                    mb_kls.append(float(np.mean(agent_kls)))
+                    if target_kl is not None and mb_kls[-1] > 1.5 * target_kl:
+                        early_stop = True
+                        break
+
                 total_actor_loss = total_actor_loss / n_agent
                 total_actor_loss.backward()
+                if max_grad_norm is not None:
+                    th.nn.utils.clip_grad_norm_(self.actor_shared.parameters(), max_grad_norm)
                 self.actor_optimizer.step()
+
+        self.actor_lr = PPOHelper.adapt_actor_lr(self.actor_optimizer, self.actor_lr, mb_kls, p)

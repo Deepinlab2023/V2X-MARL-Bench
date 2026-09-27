@@ -45,6 +45,9 @@ class MAPPO_TrainerPS:
             self.value_normalizer,
         ) = self._init_networks_and_optimizers()
 
+        PPOHelper.check_stabilization_params(params)
+        self.actor_lr = params.alpha
+
         self.test_rewards = []
         self.episode = 0
 
@@ -103,8 +106,7 @@ class MAPPO_TrainerPS:
         if p.popart:
             value_normalizer = ValueNormalizer(centralized_critic.fc3, p.critic_rescale)
 
-        actor_optimizer = th.optim.Adam(actor_shared.parameters(), lr=p.alpha)
-        critic_optimizer = th.optim.Adam(centralized_critic.parameters(), lr=p.beta)
+        actor_optimizer, critic_optimizer = PPOHelper.make_optimizers(actor_shared, centralized_critic, p)
 
         return actor_shared, centralized_critic, actor_optimizer, critic_optimizer, value_normalizer
 
@@ -222,11 +224,16 @@ class MAPPO_TrainerPS:
 
                     if task_type == "POSIG" and feature_pruning:
                         v = self.centralized_critic(fp_state)
+                        if p.popart:
+                            # PopArt head is normalized; GAE needs raw-scale values to match raw rewards
+                            v = self.value_normalizer.denormalize(v)
                         values.append(v.squeeze().detach())
 
             with th.no_grad():
                 if not (task_type == "POSIG" and feature_pruning):
                     value = self.centralized_critic(global_state).squeeze(-1).detach()
+                    if p.popart:
+                        value = self.value_normalizer.denormalize(value)
 
             joint_action = actions
             old_log_probs_stacked = th.stack(old_log_probs).detach().to(device)
@@ -373,7 +380,14 @@ class MAPPO_TrainerPS:
         mini_batch_size = max(1, len(dataset) // p.num_mini_batches)
         dataloader = th.utils.data.DataLoader(dataset, batch_size=mini_batch_size, shuffle=True)
 
+        target_kl = getattr(p, "target_kl", None)
+        max_grad_norm = getattr(p, "max_grad_norm", None)
+        mb_kls = []  # per-minibatch approx KL to the rollout policy
+        early_stop = False
+
         for _ in range(p.epochs):
+            if early_stop:
+                break
             for mb in dataloader:
 
                 if task_type == "POSIG":
@@ -442,11 +456,14 @@ class MAPPO_TrainerPS:
                     )
 
                 total_critic_loss.backward()
+                if max_grad_norm is not None:
+                    th.nn.utils.clip_grad_norm_(self.centralized_critic.parameters(), max_grad_norm)
                 self.critic_optimizer.step()
 
                 # ---- Actor update ----
                 self.actor_optimizer.zero_grad()
                 total_actor_loss = 0.0
+                agent_kls = []
 
                 for a in range(n_agent):
                     agent_id = F.one_hot(th.tensor(a), num_classes=n_agent).float()
@@ -486,6 +503,22 @@ class MAPPO_TrainerPS:
                     actor_loss = actor_loss - p.entropy_coef * entropy
                     total_actor_loss += actor_loss
 
+                    active = ~done_mask if p.action_masking else th.ones_like(action, dtype=th.bool)
+                    kl = PPOHelper.masked_approx_kl(new_log_prob, old_log_prob, active)
+                    if kl is not None:
+                        agent_kls.append(kl)
+
+                # KL early stopping: the policy already drifted too far from the rollout policy
+                if agent_kls:
+                    mb_kls.append(float(np.mean(agent_kls)))
+                    if target_kl is not None and mb_kls[-1] > 1.5 * target_kl:
+                        early_stop = True
+                        break
+
                 total_actor_loss = total_actor_loss / n_agent
                 total_actor_loss.backward()
+                if max_grad_norm is not None:
+                    th.nn.utils.clip_grad_norm_(self.actor_shared.parameters(), max_grad_norm)
                 self.actor_optimizer.step()
+
+        self.actor_lr = PPOHelper.adapt_actor_lr(self.actor_optimizer, self.actor_lr, mb_kls, p)

@@ -1,0 +1,10 @@
+{
+    "actor_hidden_dim": 128,
+    "critic_hidden_dim": 128,
+    "alpha": 0.0002,
+    "beta": 0.0002,
+    "batch_size": 8,
+    "tau": 0.01,
+    "training_episodes": 30000,
+    "no_sharing": true
+}

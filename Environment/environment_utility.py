@@ -221,14 +221,16 @@ def enumerate_all_actions(action_dim, agent_number):
 
 
 def build_csv_name(algo_name, task_type, n_agent, n_sc, ff_tag, trial_run, ts,
-                   loc=None, features=None):
+                   loc=None, features=None, seed=None):
     """Build a unified, human-readable CSV filename for experiment results.
 
-    Format: {algo}_{task}_{n_agent}ag_{n_sc}sc_{ff_tag}[_{features}]_trial{n}_{ts}.csv
+    Format: {algo}_{task}_{n_agent}ag_{n_sc}sc_{ff_tag}[_{features}][_seed{s}]_trial{n}_{ts}.csv
+    The seed tag keeps runs that differ only by --seed and start in the same
+    second from writing into the same CSV / checkpoint.
     Examples:
         IDQL_SIG-ML_4ag_4sc_FF_trial0_20260326_153416.csv
         IA2C_NFIG_loc2.5_4ag_4sc_NFF_MASK_NORM_trial0_20260326_153416.csv
-        MAPPO_POSIG_4ag_4sc_FF_trial0_20260326_153416.csv
+        IPPO_SIG-SL_loc6_16ag_4sc_NFF_seed9_trial0_20260326_153416.csv
     """
     if task_type == "NFIG":
         task_str = f"NFIG_loc{loc:g}"
@@ -242,6 +244,8 @@ def build_csv_name(algo_name, task_type, n_agent, n_sc, ff_tag, trial_run, ts,
     parts = [algo_name, task_str, f"{n_agent}ag", f"{n_sc}sc", ff_tag]
     if features:
         parts.append(features)
+    if seed is not None:
+        parts.append(f"seed{seed}")
     parts += [f"trial{trial_run}", ts]
 
     return "_".join(parts) + ".csv"

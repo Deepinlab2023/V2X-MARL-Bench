@@ -29,10 +29,10 @@ class _BaseA2CCritic(th.nn.Module):
 class A2CCentralizedCritic(_BaseA2CCritic):
     """
     CTDE critic for MAA2C.
-    Uses global_state_dim since centralized critic observes full state.
+    state_dim must match the state the trainer feeds it: global_state_dim for POSIG,
+    state_dim otherwise (NFIG's full-observation state is smaller than the SIG global state).
     """
-    def __init__(self, params):
-        state_dim = params.global_state_dim
+    def __init__(self, state_dim, params):
         hidden_dim = params.critic_hidden_dim
         value_dim = params.value_dim
         input_dim = state_dim

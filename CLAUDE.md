@@ -22,20 +22,20 @@ python main.py --env <ENV> --algo <ALGO> [--loc <LOC>] [--seed <SEED>]
 
 - `--env`: `NFIG` (single-step, no fading), `SIG` (50-step, full observability), or `POSIG` (50-step, partial observability)
 - `--algo`: `idql`, `hys`, `vdn`, `qmix`, `ia2c`, `maa2c`, `ippo`, `mappo`
-- `--loc`: Location index `0.0`–`8.0`, only used for NFIG and SIG single-location runs
+- `--loc`: Location index `0`–`8` (integer only), only used for NFIG and SIG single-location runs
 - `--seed`: Optional integer seed for reproducible experiments (seeds NumPy, Python random, and PyTorch)
 
 ```bash
-python main.py --env NFIG --algo idql --loc 0.0        # Single-step, value-based
+python main.py --env NFIG --algo idql --loc 0           # Single-step, value-based
 python main.py --env SIG --algo mappo                   # Multi-location (omit --loc)
-python main.py --env SIG --algo maa2c --loc 2.5        # Single-location
+python main.py --env SIG --algo maa2c --loc 3           # Single-location
 python main.py --env POSIG --algo ippo                  # Partial observability
 python main.py --env SIG --algo mappo --seed 42         # Reproducible run
 ```
 
 Results are saved as CSV files in `Results/<algo_name>/` (auto-created). Filename format:
-`{algo}_{task}_{n_agent}ag_{n_sc}sc_{ff_tag}[_{features}]_trial{n}_{timestamp}.csv`
-e.g. `IA2C_NFIG_loc2.5_4ag_4sc_NFF_MASK_NORM_trial0_20260326_153416.csv`
+`{algo}_{task}_{n_agent}ag_{n_sc}sc_{ff_tag}[_{features}][_seed{s}]_trial{n}_{timestamp}.csv`
+e.g. `IA2C_NFIG_loc3_4ag_4sc_NFF_MASK_NORM_seed42_trial0_20260326_153416.csv` (`seed{s}` only when `--seed` is given; model checkpoints reuse the same name with `.pt`)
 
 The naming logic lives in `build_csv_name()` in `Environment/environment_utility.py`.
 
@@ -90,6 +90,10 @@ Each algorithm family has its own params file in `Configuration/`:
 - `a2c_params.py`: `training_episodes=100000`, `action_masking=True`, `adv_normalization=True`
 - `ppo_params.py`: `training_episodes=100000`, PPO clip `eps=0.2`, GAE `lam=0.95`, `popart=True`
 - `qmix_params.py`: `training_episodes=30000`, separate `agent_lr` and `mixer_lr`
+
+Parameters are layered (later wins): class defaults → `Configuration/presets/{family}_{task}.json` (auto-loaded; family = `ppo` for IPPO and MAPPO, etc.) → `--config <json>` (sparse). Presets hold the baseline per-task configs; opt-in alternatives live in `Configuration/experimental/` (see its README).
+
+PPO (IPPO and MAPPO) critic-scale convention, defined in `PPOHelper.critic_loss_fn` / `normalize_returns`: with `popart=True` the critic head is in normalized space and rollout values are denormalized before GAE; with `popart=False` the critic regresses raw returns with plain MSE. Optional update stabilization (`target_kl`, `lr_schedule`, `adam_eps`, `max_grad_norm`) is shared by both trainers via `PPOHelper` and off by default.
 
 ### Compute Considerations
 

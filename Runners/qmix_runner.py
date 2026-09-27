@@ -1,18 +1,21 @@
 from Configuration.qmix_params import QMIXparameters
+from Configuration.param_loader import apply_overrides
 from Trainers.qmix_trainer import QMIXtrainerPS, QMIXtrainerNS
 from Environment.environment_utility import *
 
 
 
 class QMIXrunner:
-    def __init__(self, env, env_name, env_params, is_vdn):
+    def __init__(self, env, env_name, env_params, is_vdn, param_overrides=None):
         self.env = env
         self.env_name = env_name
         self.env_params = env_params
         self.is_vdn = is_vdn
+        self.param_overrides = param_overrides
 
     def run_experiment(self, test_data_list):
         algo_params = QMIXparameters()
+        apply_overrides(algo_params, self.param_overrides)
 
         train_params = {
             'env': self.env,
