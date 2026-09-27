@@ -215,3 +215,6 @@ benchmark_step_time.py
 
 # macOS
 .DS_Store
+
+# Cluster job scripts live outside the repo (~/Documents/V2X-MARL-Bench-experiments/slurm)
+/slurm/
