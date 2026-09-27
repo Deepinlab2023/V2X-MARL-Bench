@@ -71,8 +71,9 @@ class MAA2CTrainer:
             actor_shared = A2CSharedActor(actor_input_dim, p).to(device)
             actors = None
 
-        # Centralized critic always uses global state
-        critic = A2CCentralizedCritic(p).to(device)
+        # Centralized critic sees the full state: env.get_global_state for POSIG, env.get_state otherwise
+        critic_input_dim = p.global_state_dim if p.task_type == "POSIG" else p.state_dim
+        critic = A2CCentralizedCritic(critic_input_dim, p).to(device)
 
         # Optimizers
         if p.no_sharing:
