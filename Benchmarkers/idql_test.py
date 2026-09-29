@@ -25,9 +25,6 @@ class IDQLtester:
             env.new_random_game()
 
             for t in range(params.n_step_per_episode):
-                if params.fast_fading_enabled:
-                    env._renew_fast_fading()
-
                 # --- Get states (POSIG uses per-agent observation) ---
                 ag_state_list = []
                 for ag_idx in range(len(agent_list)):

@@ -113,12 +113,11 @@ class IA2CTrainer:
             if interval > 1:
                 p.env._update_positions_from_data(interval)
                 p.env._renew_channels()
+                if p.fast_fading_enabled:
+                    p.env._renew_fast_fading()
                 p.env.renew_queue()
 
             for t in range(p.n_step_per_episode):
-                if p.fast_fading_enabled:
-                    p.env._renew_fast_fading()
-
                 actions = []
                 RRA_all_agents = np.zeros([p.n_agent, 1, 2], dtype="int32")
 

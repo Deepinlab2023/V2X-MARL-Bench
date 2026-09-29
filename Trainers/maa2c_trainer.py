@@ -104,9 +104,6 @@ class MAA2CTrainer:
         env.new_random_game()
 
         for t in range(p.n_step_per_episode):
-            if p.fast_fading_enabled:
-                env._renew_fast_fading()
-
             actions = []
             RRA_all_agents = np.zeros([p.n_agent, 1, 2], dtype="int32")
 

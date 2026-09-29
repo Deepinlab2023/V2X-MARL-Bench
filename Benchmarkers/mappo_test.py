@@ -59,9 +59,6 @@ class MAPPOtester:
         env.new_random_game()
 
         for t in range(n_steps):
-            if getattr(p, "fast_fading_enabled", False):
-                env._renew_fast_fading()
-
             rra = np.zeros((p.n_agent, 1, 2), dtype=np.int32)
 
             # FO state (NFIG/SIG) shared for all agents; POSIG uses per-agent obs

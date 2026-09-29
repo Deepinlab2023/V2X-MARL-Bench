@@ -454,13 +454,15 @@ class Environ:
             global_reward: Reward for this step, shape (1, 1)
             done: Whether episode has ended
         """
-        if self.fast_fading_enabled and not getattr(self, '_fading_frozen', False):
-            self._renew_fast_fading()
-
         action_temp = actions.copy()
         pre_empty_mask = (self.queue <= 0)
 
+        # The reward uses the same fast-fading realization the agents observed in their state.
+        # Fading is renewed afterwards for the next step, and the interference observed in the
+        # next state is measured on that new realization (as in Liang et al., JSAC 2019).
         v2v_se, v2i_se, queue = self._compute_performance_and_reward(action_temp)
+        if self.fast_fading_enabled and not getattr(self, '_fading_frozen', False):
+            self._renew_fast_fading()
         self._compute_interference_per_sc(action_temp[:, :, 0], action_temp[:, :, 1])
         self._renew_active_links()
 

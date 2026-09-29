@@ -35,9 +35,6 @@ class QMIXtester:
             env.new_random_game()
 
             for t in range(params.n_step_per_episode):
-                if getattr(params, "fast_fading_enabled", False):
-                    env._renew_fast_fading()
-
                 # --- States ---
                 ag_state_list = []
                 for ag_idx in range(len(agent_list)):
