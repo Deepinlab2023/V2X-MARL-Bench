@@ -18,20 +18,42 @@ def load_veh_pos(file_name):
 
 
 
-def random_sample(t_max_control, data):
+_block_index_cache = {}
 
+
+def _block_index(data):
+    """
+    Block ids and row ranges of consecutive equal snapshot_ids, computed once per DataFrame.
+
+    Returns (blocks, starts, ends): blocks[k] is the block id of rows starts[k]:ends[k].
+    """
+    cached = _block_index_cache.get(id(data))
+    if cached is not None and cached[0] is data:
+        return cached[1:]
 
     block_id = (data['snapshot_id'] != data['snapshot_id'].shift()).cumsum()
-    data = data.copy()
-    data['block_id'] = block_id
-    blocks = data['block_id'].unique()
+    blocks = block_id.unique()
+    block_id = block_id.to_numpy()
+    starts = np.flatnonzero(np.r_[True, block_id[1:] != block_id[:-1]])
+    ends = np.r_[starts[1:], len(block_id)]
+
+    _block_index_cache[id(data)] = (data, blocks, starts, ends)
+    return blocks, starts, ends
+
+
+def random_sample(t_max_control, data):
+    blocks, starts, ends = _block_index(data)
 
     if t_max_control > len(blocks):
         print("Error: not enough blocks to sample")
         sys.exit(1)
 
     chosen_blocks = np.random.choice(blocks, size=t_max_control, replace=False)
-    sampled_data = data[data['block_id'].isin(chosen_blocks)].drop(columns='block_id')
+
+    # Rows of the chosen blocks, in their original order
+    pos = np.sort(np.searchsorted(blocks, chosen_blocks))
+    rows = np.concatenate([np.arange(starts[k], ends[k]) for k in pos])
+    sampled_data = data.iloc[rows].copy()
 
     return sampled_data
 

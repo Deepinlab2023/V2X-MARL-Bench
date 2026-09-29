@@ -90,11 +90,12 @@ class QMIXAgent:
         return th.tensor([[random.randrange(self.action_dim)]], dtype=th.long, device=self.device)
 
     def soft_update_target_net(self) -> None:
-        target_sd = self.target_net.state_dict()
-        q_sd = self.q_net.state_dict()
-        for k in q_sd:
-            target_sd[k] = q_sd[k] * self.tau + target_sd[k] * (1 - self.tau)
-        self.target_net.load_state_dict(target_sd)
+        # In place: target = q * tau + target * (1 - tau), same arithmetic as a state_dict round trip
+        with th.no_grad():
+            for target, source in zip(self.target_net.parameters(), self.q_net.parameters()):
+                target.copy_(source * self.tau + target * (1 - self.tau))
+            for target, source in zip(self.target_net.buffers(), self.q_net.buffers()):
+                target.copy_(source * self.tau + target * (1 - self.tau))
 
     def get_action_values(self, state) -> th.Tensor:
         state_t = self._to_tensor(state, self.device)

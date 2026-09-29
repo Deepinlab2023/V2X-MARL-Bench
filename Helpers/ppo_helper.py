@@ -332,6 +332,18 @@ class PPOHelper:
         return frozenset(overlapping)
 
     @staticmethod
+    @lru_cache(maxsize=64)
+    def _cached_non_overlap_mask(g_len: int, o_len: int, agent_idx: int,
+                                 timesteps: int, n_agent: int, subchannels: int, device_str: str):
+        """Boolean mask over the global state that is False at the overlapping indices, cached."""
+        overlapping_set = PPOHelper._cached_overlapping_indices(
+            g_len, o_len, agent_idx, timesteps, n_agent, subchannels
+        )
+        mask = th.ones(g_len, dtype=th.bool, device=device_str)
+        mask[sorted(overlapping_set)] = False
+        return mask
+
+    @staticmethod
     def find_overlapping_indices(global_state,
                                  observation,
                                  agent_idx: int,
@@ -398,13 +410,9 @@ class PPOHelper:
         g = global_state if global_state.dim() == 1 else global_state.view(-1)
         obs = observation if observation.dim() == 1 else observation.view(-1)
 
-        overlapping_set = PPOHelper._cached_overlapping_indices(
-            g.numel(), obs.numel(), agent_idx, timesteps, n_agent, subchannels
+        mask = PPOHelper._cached_non_overlap_mask(
+            g.numel(), obs.numel(), agent_idx, timesteps, n_agent, subchannels, str(g.device)
         )
-
-        mask = th.ones(g.numel(), dtype=th.bool, device=g.device)
-        for idx in overlapping_set:
-            mask[idx] = False
         non_overlapping_global_state = g[mask]
 
         fp_state = th.cat([obs, non_overlapping_global_state, agent_id.squeeze(0)], dim=-1)

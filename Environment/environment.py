@@ -221,37 +221,28 @@ class Environ:
 
     def _renew_fast_fading(self):
         """Update fast fading realizations for all channels."""
-        # V2V link: independent Exp(1) per subchannel
+        # All draws for one channel type in a single call; each value is still an
+        # independent Exp(1) sample, only the order of draws from the RNG differs.
+        # The pathloss bases are the ones _renew_channels() computed from the same positions.
+
+        # V2V link: independent Exp(1) per unordered vehicle pair and subchannel (symmetric)
         self.v2v_pathloss_with_ff = np.empty((self.n_veh, self.n_veh, self.n_sc))
-        for i in range(self.n_veh):
-            for j in range(i + 1, self.n_veh):
-                base = self.v2v_pathloss[i, j]
-                for m in range(self.n_sc):
-                    g = np.random.exponential(1.0)
-                    val = base - 10.0 * np.log10(g)
-                    self.v2v_pathloss_with_ff[i, j, m] = val
-                    self.v2v_pathloss_with_ff[j, i, m] = val
+        iu, ju = np.triu_indices(self.n_veh, k=1)
+        g = np.random.exponential(1.0, size=(iu.size, self.n_sc))
+        val = self.v2v_pathloss[iu, ju][:, None] - 10.0 * np.log10(g)
+        self.v2v_pathloss_with_ff[iu, ju, :] = val
+        self.v2v_pathloss_with_ff[ju, iu, :] = val
 
         # V2V-to-BS: independent Exp(1) per subchannel
-        self.v2v_pathloss_to_bs_with_ff = np.empty((self.n_veh, self.n_sc))
-        for veh_idx in range(self.n_veh):
-            base = self.v2v_pathloss_to_bs[veh_idx]
-            for m in range(self.n_sc):
-                g = np.random.exponential(1.0)
-                self.v2v_pathloss_to_bs_with_ff[veh_idx, m] = base - 10.0 * np.log10(g)
+        g = np.random.exponential(1.0, size=(self.n_veh, self.n_sc))
+        self.v2v_pathloss_to_bs_with_ff = self.v2v_pathloss_to_bs[:, None] - 10.0 * np.log10(g)
 
         # V2I channels: one Exp(1) sample per SC (already per-subchannel)
-        self.v2i_pathloss_to_bs_with_ff = self.v2i_pathloss_to_bs.copy()
-        for sc in range(self.n_sc):
-            self.v2i_pathloss_to_bs_with_ff[sc] = self._compute_v2i_pathloss_with_ff(
-                self.vehicles_v2i[sc].position)
+        g = np.random.exponential(1.0, size=self.n_sc)
+        self.v2i_pathloss_to_bs_with_ff = self.v2i_pathloss_to_bs - 10.0 * np.log10(g)
 
-        self.v2i_pathloss_to_veh_with_ff = self.v2i_pathloss_to_veh.copy()
-        for sc in range(self.n_sc):
-            for veh_idx in range(self.n_veh):
-                pl_sc_veh = self._compute_v2v_pathloss_with_ff(
-                    self.vehicles_v2i[sc].position, self.vehicles_v2v[veh_idx].position)
-                self.v2i_pathloss_to_veh_with_ff[sc, veh_idx] = pl_sc_veh
+        g = np.random.exponential(1.0, size=(self.n_sc, self.n_veh))
+        self.v2i_pathloss_to_veh_with_ff = self.v2i_pathloss_to_veh - 10.0 * np.log10(g)
 
     # =========================================================================
     # Vehicle Management
@@ -603,83 +594,57 @@ class Environ:
                 lo_db, hi_db = self.pathloss_bounds[gain_type]
                 return np.clip((pl_db - lo_db) / max(hi_db - lo_db, 1e-9), 0.0, 1.0)
 
-        state = np.array([])
-
         if self.timestep_encoding_type == 'normalized':
             t_enc = np.array([t / self.n_step_per_episode])
         else:
             t_enc = np.zeros(self.n_step_per_episode)
             t_enc[min(t, self.n_step_per_episode - 1)] = 1
 
-        g_i = np.array([])
-        for i in range(self.n_agent):
-            veh_tx = self.agent_to_veh[i]
-            veh_rx = self._get_rx_veh_idx(i)
-            if self.fast_fading_enabled:
-                for m in range(self.n_sc):
-                    g_i = np.hstack((g_i, norm_gain(self.v2v_pathloss_with_ff[veh_tx, veh_rx, m], 'v2v_link')))
-            else:
-                g_i = np.hstack((g_i, norm_gain(self.v2v_pathloss[veh_tx, veh_rx], 'v2v_link')))
-
-        g_ji = np.array([])
-        for i in range(self.n_agent):
-            for j in range(self.n_agent):
-                if i == j:
-                    continue
-                veh_tx = self.agent_to_veh[j]
-                veh_rx = self._get_rx_veh_idx(i)
-                if self.fast_fading_enabled:
-                    for m in range(self.n_sc):
-                        g_ji = np.hstack((g_ji, norm_gain(self.v2v_pathloss_with_ff[veh_tx, veh_rx, m], 'v2v_interference')))
-                else:
-                    g_ji = np.hstack((g_ji, norm_gain(self.v2v_pathloss[veh_tx, veh_rx], 'v2v_interference')))
-
-        g_m = np.array([])
-        for m in range(self.n_sc):
-            pl_db = (self.v2i_pathloss_to_bs_with_ff[m]
-                     if self.fast_fading_enabled
-                     else self.v2i_pathloss_to_bs[m])
-            g_m = np.hstack((g_m, norm_gain(pl_db, 'veh_to_bs')))
-
-        g_bi = np.array([])
-        for i in range(self.n_agent):
-            for m in range(self.n_sc):
-                veh_rx = self._get_rx_veh_idx(i)
-                pl_db = (self.v2i_pathloss_to_veh_with_ff[m, veh_rx]
-                         if self.fast_fading_enabled
-                         else self.v2i_pathloss_to_veh[m, veh_rx])
-                g_bi = np.hstack((g_bi, norm_gain(pl_db, 'v2v_interference')))
-
-        g_ib = np.array([])
-        for i in range(self.n_agent):
-            veh_tx = self.agent_to_veh[i]
-            if self.fast_fading_enabled:
-                for m in range(self.n_sc):
-                    g_ib = np.hstack((g_ib, norm_gain(self.v2v_pathloss_to_bs_with_ff[veh_tx, m], 'veh_to_bs')))
-            else:
-                g_ib = np.hstack((g_ib, norm_gain(self.v2v_pathloss_to_bs[veh_tx], 'veh_to_bs')))
+        # Vectorized gathers; element order matches the per-agent / per-subchannel loops:
+        # agent i (then interferer j != i) outer, subchannel m inner.
+        tx, rx, pair_i, pair_j = self._sig_state_indices()
+        if self.fast_fading_enabled:
+            g_i = self.v2v_pathloss_with_ff[tx, rx, :].ravel()
+            g_ji = self.v2v_pathloss_with_ff[tx[pair_j], rx[pair_i], :].ravel()
+            g_m = self.v2i_pathloss_to_bs_with_ff
+            g_bi = self.v2i_pathloss_to_veh_with_ff[:, rx].T.ravel()
+            g_ib = self.v2v_pathloss_to_bs_with_ff[tx, :].ravel()
+        else:
+            g_i = self.v2v_pathloss[tx, rx]
+            g_ji = self.v2v_pathloss[tx[pair_j], rx[pair_i]]
+            g_m = self.v2i_pathloss_to_bs
+            g_bi = self.v2i_pathloss_to_veh[:, rx].T.ravel()
+            g_ib = self.v2v_pathloss_to_bs[tx]
+        g_i = norm_gain(g_i, 'v2v_link')
+        g_ji = norm_gain(g_ji, 'v2v_interference')
+        g_m = norm_gain(g_m, 'veh_to_bs')
+        g_bi = norm_gain(g_bi, 'v2v_interference')
+        g_ib = norm_gain(g_ib, 'veh_to_bs')
 
         if not hasattr(self, 'previous_interference_per_sc'):
             self.previous_interference_per_sc = np.zeros((self.n_agent, self.n_sc))
 
-        i_prev = np.array([])
-        for agent_i in range(self.n_agent):
-            intf_mw = self.previous_interference_per_sc[agent_i, :].copy()
-            intf_dbm = 10.0 * np.log10(np.maximum(intf_mw, 1e-30))
-            noise_dbm = 10.0 * np.log10(self.noise_power_mw)
-            inr_db = intf_dbm - noise_dbm
-            inr_min, inr_max = self.inr_norm_bounds
-            intf_norm = (np.clip(inr_db, inr_min, inr_max) - inr_min) / (inr_max - inr_min)
-            i_prev = np.hstack((i_prev, intf_norm))
+        intf_dbm = 10.0 * np.log10(np.maximum(self.previous_interference_per_sc, 1e-30))
+        noise_dbm = 10.0 * np.log10(self.noise_power_mw)
+        inr_db = intf_dbm - noise_dbm
+        inr_min, inr_max = self.inr_norm_bounds
+        i_prev = ((np.clip(inr_db, inr_min, inr_max) - inr_min) / (inr_max - inr_min)).ravel()
 
         queue_norm = self.queue / self.max_queue_length
         queue_norm = queue_norm.flatten()
 
-        for state_info in [t_enc, g_i, g_ji, g_m, g_bi, g_ib, i_prev, queue_norm]:
-            state = np.hstack((state, state_info))
-
+        state = np.concatenate([t_enc, g_i, g_ji, g_m, g_bi, g_ib, i_prev, queue_norm])
         state = state.reshape((1, -1))
         return state
+
+    def _sig_state_indices(self):
+        """Tx / Rx vehicle index per agent and the (i, j != i) interferer pairs, cached."""
+        if getattr(self, '_sig_idx_cache', None) is None:
+            tx = np.array([self.agent_to_veh[i] for i in range(self.n_agent)])
+            rx = np.array([self._get_rx_veh_idx(i) for i in range(self.n_agent)])
+            pair_i, pair_j = np.nonzero(~np.eye(self.n_agent, dtype=bool))
+            self._sig_idx_cache = (tx, rx, pair_i, pair_j)
+        return self._sig_idx_cache
 
     def _get_state_POSIG(self, ag_idx, t):
         """Observation for POSIG: t + G_i + G_iB + I_prev + queue (per agent)"""

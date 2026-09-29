@@ -163,25 +163,30 @@ class QMIXLearner:
         transitions = self.memory.sample(self.batch_size)
         batch = Transition(*zip(*transitions))
 
-        state_list = {ag_idx: [] for ag_idx in range(len(self.agent_list))}
-        next_state_list = {ag_idx: [] for ag_idx in range(len(self.agent_list))}
-        action_list = {ag_idx: [] for ag_idx in range(len(self.agent_list))}
+        # One tensor per agent (wrapped in a one-element list, so callers' th.cat is unchanged)
+        # instead of one small tensor per sample; the values and their order are the same.
+        def stack(arrays, dtype):
+            arrays = [a for a in arrays if a is not None]
+            if not arrays:
+                return []
+            return [th.tensor(np.concatenate(arrays, axis=0), dtype=dtype)]
 
-        for agent_state, agent_next_state, agent_action in zip(batch.state, batch.next_state, batch.action):
-            for ag_idx in range(len(self.agent_list)):
-                if agent_state[ag_idx] is not None:
-                    state_list[ag_idx].append(th.tensor(agent_state[ag_idx], dtype=th.float32))
-                if agent_next_state[ag_idx] is not None:
-                    next_state_list[ag_idx].append(th.tensor(agent_next_state[ag_idx], dtype=th.float32))
-                if agent_action[ag_idx] is not None:
-                    action_value = int(agent_action[ag_idx].item())
-                    action_list[ag_idx].append(th.tensor([action_value], dtype=th.int64, device=self.device))
+        state_list = {}
+        next_state_list = {}
+        action_list = {}
+        for ag_idx in range(len(self.agent_list)):
+            state_list[ag_idx] = stack([s[ag_idx] for s in batch.state], th.float32)
+            next_state_list[ag_idx] = stack([s[ag_idx] for s in batch.next_state], th.float32)
+            action_values = [int(a[ag_idx].item()) for a in batch.action if a[ag_idx] is not None]
+            action_list[ag_idx] = (
+                [th.tensor(action_values, dtype=th.int64, device=self.device)] if action_values else []
+            )
 
         reward_batch = th.tensor(np.vstack(batch.reward), device=self.device)
         done_batch = th.tensor(batch.done, device=self.device, dtype=th.bool)
 
-        global_state_list = [th.tensor(gs, dtype=th.float32) for gs in batch.global_state]
-        global_next_state_list = [th.tensor(gns, dtype=th.float32) for gns in batch.global_next_state]
+        global_state_list = stack(list(batch.global_state), th.float32)
+        global_next_state_list = stack(list(batch.global_next_state), th.float32)
 
         return state_list, next_state_list, action_list, reward_batch, done_batch, global_state_list, global_next_state_list
 
@@ -280,11 +285,10 @@ class QMIXLearner:
         return params
 
     def soft_update_target_net(self) -> None:
-        target_sd = self.target_mixing_net.state_dict()
-        eval_sd = self.eval_mixing_net.state_dict()
-
+        # In place: target = eval * tau + target * (1 - tau), same arithmetic as a state_dict round trip
         tau = self.agent_list[0].tau
-        for k in eval_sd:
-            target_sd[k] = eval_sd[k] * tau + target_sd[k] * (1 - tau)
-
-        self.target_mixing_net.load_state_dict(target_sd)
+        with th.no_grad():
+            for target, source in zip(self.target_mixing_net.parameters(), self.eval_mixing_net.parameters()):
+                target.copy_(source * tau + target * (1 - tau))
+            for target, source in zip(self.target_mixing_net.buffers(), self.eval_mixing_net.buffers()):
+                target.copy_(source * tau + target * (1 - tau))

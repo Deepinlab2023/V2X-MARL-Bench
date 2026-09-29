@@ -131,11 +131,12 @@ class DQNAgent:
         self.memory.push(state, action, next_state, done, reward)
 
     def soft_update_target_net(self):
-        target_net_state_dict = self.target_net.state_dict()
-        q_net_state_dict = self.q_net.state_dict()
-        for key in q_net_state_dict:
-            target_net_state_dict[key] = q_net_state_dict[key] * self.tau + target_net_state_dict[key] * (1 - self.tau)
-        self.target_net.load_state_dict(target_net_state_dict)
+        # In place: target = q * tau + target * (1 - tau), same arithmetic as a state_dict round trip
+        with th.no_grad():
+            for target, source in zip(self.target_net.parameters(), self.q_net.parameters()):
+                target.copy_(source * self.tau + target * (1 - self.tau))
+            for target, source in zip(self.target_net.buffers(), self.q_net.buffers()):
+                target.copy_(source * self.tau + target * (1 - self.tau))
 
     def optimize_model(self):
         if len(self.memory) < self.batch_size:

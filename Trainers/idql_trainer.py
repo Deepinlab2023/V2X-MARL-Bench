@@ -178,7 +178,11 @@ class IDQLtrainerNS:
                 # --- Get states ---
                 # POSIG: each agent has a distinct local observation.
                 # NFIG/SIG: get_state() ignores ag_idx — call once and share.
-                if env_name == "POSIG":
+                # After the first step, the states at t are the next states computed after
+                # step t-1: the environment does not change in between.
+                if t > 0:
+                    ag_state_list = ag_next_state_list
+                elif env_name == "POSIG":
                     ag_state_list = [env.get_state(ag_idx, t) for ag_idx in range(len(agent_list))]
                 else:
                     shared_state = env.get_state(0, t)
