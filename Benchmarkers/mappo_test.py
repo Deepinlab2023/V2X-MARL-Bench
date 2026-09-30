@@ -16,6 +16,13 @@ class MAPPOtester:
         tester = MAPPOtester(policy, params)
         return tester.test()
 
+    @staticmethod
+    def episode_returns(policy, params):
+        """Per-episode test returns (one per test episode), e.g. for extra evaluation sets."""
+        tester = MAPPOtester(policy, params)
+        tester.test()
+        return tester.episode_rewards
+
     # ==========================
     #   INIT / SETUP
     # ==========================
@@ -41,6 +48,7 @@ class MAPPOtester:
             test_rewards[i] = float(self._run_single_episode(i, n_steps))
 
         policy.train()
+        self.episode_rewards = test_rewards
         return float(np.mean(test_rewards))
 
     # ==========================

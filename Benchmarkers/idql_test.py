@@ -9,7 +9,12 @@ device = th.device("cuda" if th.cuda.is_available() else "cpu")
 
 class IDQLtester:
     @staticmethod
-    def test_IDQL_NoSharing(agent_list, params, num_test_episodes, num_agents, test_data_list, te):
+    def test_IDQL_NoSharing(agent_list, params, num_test_episodes, num_agents, test_data_list, te,
+                            return_episode_rewards=False):
+        """
+        Returns (mean test return, last joint action), or the per-episode returns
+        when return_episode_rewards=True (e.g. for extra evaluation sets).
+        """
         if platform.system() == "Linux":
             th.set_num_threads(1)
             th.use_deterministic_algorithms(True)
@@ -56,5 +61,7 @@ class IDQLtester:
 
             test_rewards[i] += total_rewards
 
+        if return_episode_rewards:
+            return test_rewards
         average_reward = np.mean(test_rewards)
         return average_reward, joint_action

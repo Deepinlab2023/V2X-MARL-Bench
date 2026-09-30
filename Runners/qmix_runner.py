@@ -6,12 +6,13 @@ from Environment.environment_utility import *
 
 
 class QMIXrunner:
-    def __init__(self, env, env_name, env_params, is_vdn, param_overrides=None):
+    def __init__(self, env, env_name, env_params, is_vdn, param_overrides=None, save_model=True):
         self.env = env
         self.env_name = env_name
         self.env_params = env_params
         self.is_vdn = is_vdn
         self.param_overrides = param_overrides
+        self.save_model = save_model
 
     def run_experiment(self, test_data_list):
         algo_params = QMIXparameters()
@@ -24,6 +25,7 @@ class QMIXrunner:
             'test_data_list': test_data_list,
             'is_vdn': self.is_vdn,
             'algo_params': algo_params,
+            'save_model': self.save_model,
         }
 
         algo_name = "VDN" if self.is_vdn else "QMIX"

@@ -190,6 +190,15 @@ class A2CHelper:
             A2CHelper.run_training_iteration(trainer, ctde)
         return trainer.episode_rewards, trainer.test_rewards
 
+    # ---------- model checkpoint ----------
+    @staticmethod
+    def save_model(trainer, state):
+        """Save state dicts next to the result CSV: <out_dir>/models/<csv name>.pt"""
+        model_dir = os.path.join(os.path.dirname(trainer.csv_file.name), "models")
+        os.makedirs(model_dir, exist_ok=True)
+        model_name = os.path.basename(trainer.csv_file.name).replace(".csv", ".pt")
+        th.save(state, os.path.join(model_dir, model_name))
+
     # ---------- common test logging / plotting ----------
     @staticmethod
     def finalize_test(trainer, test_reward: float, algo_name: str):

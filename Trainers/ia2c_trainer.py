@@ -7,6 +7,7 @@ from Networks.Agents.a2c_actor import A2CSharedActor, A2CActorNS
 from Networks.Critics.a2c_critic import A2CSharedCritic, A2CCriticNS
 from Helpers.a2c_helper import A2CHelper
 from Benchmarkers.ia2c_test import IA2Ctester
+from Benchmarkers.eval_sets import EvalSets, with_topologies
 
 device = th.device("cuda" if th.cuda.is_available() else "cpu")
 
@@ -21,6 +22,8 @@ class IA2CTrainer:
         self.params = params
         self._compatibility_checks()
         self.csv_file, self.csv_writer = self._init_logging()
+        self.eval_sets = EvalSets(getattr(params.env_params, "eval_set_paths", None),
+                                  self.csv_file.name, params.n_agent)
         (
             self.actor_shared,
             self.actors,
@@ -37,7 +40,21 @@ class IA2CTrainer:
         self.episode = 0
 
     def train(self):
-        return A2CHelper.train_loop(self, ctde=False)
+        try:
+            result = A2CHelper.train_loop(self, ctde=False)
+            if getattr(self.params, "save_model", True):
+                self._save_model()
+        finally:
+            self.eval_sets.close()
+        return result
+
+    def _save_model(self):
+        if self.params.no_sharing:
+            state = {**{f"actor_{i}": a.state_dict() for i, a in enumerate(self.actors)},
+                    **{f"critic_{i}": c.state_dict() for i, c in enumerate(self.critics)}}
+        else:
+            state = {"actor": self.actor_shared.state_dict(), "critic": self.critic_shared.state_dict()}
+        A2CHelper.save_model(self, state)
 
     def _compatibility_checks(self):
         A2CHelper.basic_a2c_compat_checks(self.params, algo_name="IA2C")
@@ -218,6 +235,11 @@ class IA2CTrainer:
             self.actor_shared.load_state_dict(actor_state)
 
         A2CHelper.finalize_test(self, test_reward, algo_name="IA2C")
+
+        if self.eval_sets:
+            policy = self.actors if p.no_sharing else self.actor_shared
+            self.eval_sets.evaluate(self.episode, lambda topologies: IA2Ctester.episode_returns(
+                policy, with_topologies(p, topologies)))
 
     # ----------------------------------------------------- #
     #  Update routing

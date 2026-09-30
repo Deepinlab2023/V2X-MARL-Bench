@@ -189,6 +189,22 @@ def sample_veh_position_single(data):
     return sampled_data
 
 
+def exclude_topologies(data, excluded):
+    """
+    Remove the topologies (snapshot_ids) of `excluded` from `data`; returns (data, number removed).
+
+    The same snapshot_id is a different topology in another dataset (e.g. another agent count),
+    so the rows of `excluded` must match those of `data` exactly.
+    """
+    ids = set(excluded['snapshot_id'].unique().tolist())
+    key = ['snapshot_id', 'role', 'pair_id', 'x', 'y']
+    a = excluded[key].sort_values(key).reset_index(drop=True)
+    b = data.loc[data['snapshot_id'].isin(ids), key].sort_values(key).reset_index(drop=True)
+    if not a.equals(b):
+        raise ValueError("Excluded topologies do not match the training data (wrong agent count or dataset?)")
+    return data[~data['snapshot_id'].isin(ids)], len(ids)
+
+
 def sample_veh_position_from_timestep(data, time_step):
     if time_step not in data['snapshot_id'].unique():
         print(f"Error: snapshot_id {time_step} not found in the data")

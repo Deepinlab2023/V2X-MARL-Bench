@@ -89,6 +89,13 @@ TEST_DATA_PATHS = {
     8: './Environment/SUMOData/NFIG_k8.csv',
     16: './Environment/SUMOData/NFIG_k16.csv',
 }
+# Held-out topologies (UNSEEN-100), removed from the default SIG ML / POSIG training data
+# unless main.py is run with --no-exclude_heldout (see Environment/build_eval_sets.py)
+HELDOUT_DATA_PATHS = {
+    4: './Environment/SUMOData/eval_sets/unseen100_k4.csv',
+    8: './Environment/SUMOData/eval_sets/unseen100_k8.csv',
+    16: './Environment/SUMOData/eval_sets/unseen100_k16.csv',
+}
 
 
 class V2XParams:

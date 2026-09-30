@@ -10,6 +10,7 @@ from Networks.Agents.qmix_agent import QMIXAgent
 from Helpers.qmix_helper import QMIX_network_init, QMIXLearner
 from Helpers.plotting_helper import plot_test_returns
 from Benchmarkers.qmix_test import QMIXtester
+from Benchmarkers.eval_sets import EvalSets
 from Environment.environment_utility import *
 
 device = th.device("cuda" if th.cuda.is_available() else "cpu")
@@ -40,6 +41,7 @@ class QMIXtrainerNS:
         algo_params,
         algo_name="QMIX",
         trial_run=0,
+        save_model=True,
     ):
         # --- Determine input dimension based on task type ---
         if env_name == "POSIG":
@@ -104,6 +106,8 @@ class QMIXtrainerNS:
         out_dir = os.path.join("Results", algo_name)
         os.makedirs(out_dir, exist_ok=True)
         csv_file = open(os.path.join(out_dir, csv_name), "w", newline="")
+        eval_sets = EvalSets(getattr(env_params, "eval_set_paths", None),
+                             os.path.join(out_dir, csv_name), env.n_agent)
         csv_writer = csv.writer(csv_file)
 
 
@@ -143,6 +147,11 @@ class QMIXtrainerNS:
                     test_rewards, title="Test Return Over Time QMIX", figure_id=1, pause=1.0,
                 )
                 print(f'Training reward at episode {te + 1}: {test_reward:.2f}')
+
+                if eval_sets:
+                    eval_sets.evaluate(te, lambda topologies: QMIXtester.test_QMIX_NoSharing(
+                        agent_list, env_params, len(topologies), env.n_agent, topologies, te,
+                        return_episode_rewards=True))
 
             for t in range(env_params.n_step_per_episode):
                 # _renew_fast_fading() is called inside env.step(); no explicit call needed.
@@ -211,4 +220,14 @@ class QMIXtrainerNS:
             episode_rewards.append(np.mean(total_rewards))
 
         csv_file.close()
+        eval_sets.close()
+
+        if save_model:
+            model_dir = os.path.join(out_dir, "models")
+            os.makedirs(model_dir, exist_ok=True)
+            model_path = os.path.join(model_dir, csv_name.replace(".csv", ".pt"))
+            state = {f"agent_{ag_idx}": agent.q_net.state_dict() for ag_idx, agent in enumerate(agent_list)}
+            state["mixer"] = qmix_learner.eval_mixing_net.state_dict()
+            th.save(state, model_path)
+
         return episode_rewards, test_rewards

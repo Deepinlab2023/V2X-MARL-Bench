@@ -1,4 +1,6 @@
 import csv
+import os
+
 import numpy as np
 import torch as th
 import torch.nn.functional as F
@@ -11,6 +13,7 @@ from Helpers.ppo_helper import PPOHelper, PPOBatchProcessing, ValueNormalizer
 
 from Helpers.plotting_helper import plot_test_returns
 from Benchmarkers.mappo_test import MAPPOtester
+from Benchmarkers.eval_sets import EvalSets, with_topologies
 
 device = th.device("cuda" if th.cuda.is_available() else "cpu")
 
@@ -35,6 +38,8 @@ class MAPPO_TrainerPS:
         self.feature_pruning = getattr(params, "feature_pruning", False)
 
         self.csv_file, self.csv_writer = PPOHelper.init_csv_logging(params, algo_name="MAPPO")
+        self.eval_sets = EvalSets(getattr(params.env_params, "eval_set_paths", None),
+                                  self.csv_file.name, self.n_agent)
 
         # Networks / optimizers / PopArt
         (
@@ -73,10 +78,23 @@ class MAPPO_TrainerPS:
                 batch = self._normalize_returns(batch)
                 self._ppo_update_epochs(batch)
 
+            if getattr(p, "save_model", True):
+                self._save_model()
+
         finally:
             self.csv_file.close()
+            self.eval_sets.close()
 
         return [], self.test_rewards
+
+    def _save_model(self):
+        model_dir = os.path.join(os.path.dirname(self.csv_file.name), "models")
+        os.makedirs(model_dir, exist_ok=True)
+        model_name = os.path.basename(self.csv_file.name).replace(".csv", ".pt")
+        th.save(
+            {"actor": self.actor_shared.state_dict(), "critic": self.centralized_critic.state_dict()},
+            os.path.join(model_dir, model_name),
+        )
 
     # ==========================
     #   NETWORKS / OPTIMIZERS
@@ -119,6 +137,12 @@ class MAPPO_TrainerPS:
         self.csv_writer.writerow([test_reward])
         self.csv_file.flush()
         print(f"Training reward at episode {self.episode}: {test_reward:.2f}")
+        self._run_eval_sets()
+
+    def _run_eval_sets(self):
+        if self.eval_sets:
+            self.eval_sets.evaluate(self.episode, lambda topologies: MAPPOtester.episode_returns(
+                self.actor_shared, with_topologies(self.params, topologies)))
 
     def _maybe_test(self):
         p = self.params
@@ -135,6 +159,7 @@ class MAPPO_TrainerPS:
                 pause=1.0,
             )
             print(f"Training reward at episode {self.episode}: {test_reward:.2f}")
+            self._run_eval_sets()
 
     # ==========================
     #   EPISODE COLLECTION

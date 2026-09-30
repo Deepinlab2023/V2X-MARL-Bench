@@ -10,8 +10,12 @@ device = th.device("cuda" if th.cuda.is_available() else "cpu")
 
 class QMIXtester:
     @staticmethod
-    def test_QMIX_NoSharing(agent_list, params, num_test_episodes, num_agents, test_data_list, qmix_learner):
+    def test_QMIX_NoSharing(agent_list, params, num_test_episodes, num_agents, test_data_list, qmix_learner,
+                            return_episode_rewards=False):
         """
+        Returns the mean test return, or the per-episode returns when
+        return_episode_rewards=True (e.g. for extra evaluation sets).
+
         Refactored to match IDQLtester loop:
         - env.train_data = test_data
         - env.get_state(ag_idx, t)
@@ -74,4 +78,6 @@ class QMIXtester:
 
             test_rewards[i] = total_rewards
 
+        if return_episode_rewards:
+            return test_rewards
         return float(np.mean(test_rewards))

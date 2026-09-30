@@ -12,6 +12,13 @@ class IPPOtester:
         tester = IPPOtester(policy, params)
         return tester.test()
 
+    @staticmethod
+    def episode_returns(policy, params):
+        """Per-episode test returns (one per test episode), e.g. for extra evaluation sets."""
+        tester = IPPOtester(policy, params)
+        tester.test()
+        return tester.episode_rewards
+
     # ==========================
     #   INIT / SETUP
     # ==========================
@@ -37,6 +44,7 @@ class IPPOtester:
             test_rewards[i] = float(self._run_single_episode(i, n_steps))
 
         policy.train()
+        self.episode_rewards = test_rewards
         return float(np.mean(test_rewards))
 
     # ==========================

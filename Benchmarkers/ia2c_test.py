@@ -17,6 +17,13 @@ class IA2Ctester:
         tester = IA2Ctester(policy, params)
         return tester.test()
 
+    @staticmethod
+    def episode_returns(policy, params):
+        """Per-episode test returns (one per test episode), e.g. for extra evaluation sets."""
+        tester = IA2Ctester(policy, params)
+        tester.test()
+        return tester.episode_rewards
+
     # ==========================
     #   INIT / SETUP
     # ==========================
@@ -42,6 +49,7 @@ class IA2Ctester:
             total_reward = self._run_single_episode(i)
             test_rewards[i] = total_reward
 
+        self.episode_rewards = test_rewards
         return float(np.mean(test_rewards))
 
     # ==========================

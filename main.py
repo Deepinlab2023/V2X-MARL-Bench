@@ -7,7 +7,7 @@ import numpy as np
 import torch as th
 
 # Import Environment Information
-from Configuration.env_params import V2XParams
+from Configuration.env_params import V2XParams, HELDOUT_DATA_PATHS
 from Configuration.param_loader import resolve_param_overrides, apply_overrides, ALGO_FAMILY
 from Configuration.idql_params import IDQLparameters
 from Configuration.qmix_params import QMIXparameters
@@ -103,7 +103,13 @@ def main():
                         help='Sparse JSON file overriding preset parameters (only changed fields needed).')
     parser.add_argument('--save_model', action=argparse.BooleanOptionalAction, default=True,
                         help='Save the trained model checkpoint once training fully completes '
-                             '(idql/hys/ippo only). Use --no-save_model to disable.')
+                             '(Results/<ALGO>/models/<result name>.pt). Use --no-save_model to disable.')
+    parser.add_argument('--eval_sets', type=str, nargs='+', default=None,
+                        help='Topology CSVs to also evaluate at every test point (one episode per '
+                             'topology); each writes <result name>_eval-<file name>.csv.')
+    parser.add_argument('--exclude_heldout', action=argparse.BooleanOptionalAction, default=True,
+                        help='Remove the held-out UNSEEN-100 topologies of the agent count from the default '
+                             'SIG ML / POSIG training data. Use --no-exclude_heldout to train on all of it.')
     args = parser.parse_args()
 
     if args.seed is not None:
@@ -138,6 +144,13 @@ def main():
         if args.test_data is not None:
             env_params.test_data = load_veh_pos(args.test_data)
             env_params.test_data_path = args.test_data
+        # SIG ML / POSIG on the default dataset: hold out UNSEEN-100 from training
+        heldout_path = None
+        if args.exclude_heldout and args.loc is None and args.train_data is None and args.env in ("SIG", "POSIG"):
+            heldout_path = HELDOUT_DATA_PATHS[env_params.n_agent]
+            env_params.train_data, n_excluded = exclude_topologies(
+                env_params.train_data, load_veh_pos(heldout_path))
+        env_params.eval_set_paths = args.eval_sets
         env = Environ(env_params)
 
         # NOTE: renamed per your new convention (veh_data -> train_data)
@@ -210,6 +223,12 @@ def main():
             print(f"Test Data:      {getattr(env_params, 'test_data_path', 'N/A')}")
         print(f"Train Episodes: {training_episodes}")
         print(f"Test Episodes:  {len(test_data_list)}")
+        if heldout_path is not None:
+            print(f"Held Out:       {n_excluded} topologies excluded from training ({heldout_path})")
+        elif args.loc is None and args.env in ("SIG", "POSIG"):
+            print("Held Out:       none (training on the full dataset)")
+        if args.eval_sets:
+            print(f"Eval Sets:      {', '.join(args.eval_sets)}")
         print(f"Steps/Episode:  {env_params.n_step_per_episode}")
         print(f"Fast Fading:    {env_params.fast_fading_tag}")
         print(f"State Dim:      {env.state_dim}")
@@ -230,9 +249,9 @@ def main():
             elif args.algo == 'hys':
                 runner = IDQLrunner(env, args.env, env_params, True, param_overrides=param_overrides, save_model=args.save_model)
             elif args.algo == 'vdn':
-                runner = QMIXrunner(env, args.env, env_params, True, param_overrides=param_overrides)
+                runner = QMIXrunner(env, args.env, env_params, True, param_overrides=param_overrides, save_model=args.save_model)
             elif args.algo == 'qmix':
-                runner = QMIXrunner(env, args.env, env_params, False, param_overrides=param_overrides)
+                runner = QMIXrunner(env, args.env, env_params, False, param_overrides=param_overrides, save_model=args.save_model)
             else:
                 raise ValueError("Algorithm name incorrect or not found")
         else:

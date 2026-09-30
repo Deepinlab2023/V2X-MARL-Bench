@@ -12,6 +12,7 @@ from Helpers.ppo_helper import PPOHelper, PPOBatchProcessing, ValueNormalizer
 
 from Helpers.plotting_helper import plot_test_returns
 from Benchmarkers.ippo_test import IPPOtester
+from Benchmarkers.eval_sets import EvalSets, with_topologies
 
 device = th.device("cuda" if th.cuda.is_available() else "cpu")
 
@@ -35,6 +36,8 @@ class IPPO_TrainerPS:
         self.ff_on = getattr(params, "fast_fading_enabled", getattr(self.env, "fast_fading_enabled", False))
 
         self.csv_file, self.csv_writer = PPOHelper.init_csv_logging(params, algo_name="IPPO")
+        self.eval_sets = EvalSets(getattr(params.env_params, "eval_set_paths", None),
+                                  self.csv_file.name, self.n_agent)
 
         (
             self.actor_shared,
@@ -77,6 +80,7 @@ class IPPO_TrainerPS:
 
         finally:
             self.csv_file.close()
+            self.eval_sets.close()
 
         return [], self.test_rewards
 
@@ -122,6 +126,12 @@ class IPPO_TrainerPS:
         self.csv_writer.writerow([test_reward])
         self.csv_file.flush()
         print(f"Training reward at episode {self.episode}: {test_reward:.2f}")
+        self._run_eval_sets()
+
+    def _run_eval_sets(self):
+        if self.eval_sets:
+            self.eval_sets.evaluate(self.episode, lambda topologies: IPPOtester.episode_returns(
+                self.actor_shared, with_topologies(self.params, topologies)))
 
     def _maybe_test(self):
         p = self.params
@@ -138,6 +148,7 @@ class IPPO_TrainerPS:
                 pause=1.0,
             )
             print(f"Training reward at episode {self.episode}: {test_reward:.2f}")
+            self._run_eval_sets()
 
     # ==========================
     #   EPISODE COLLECTION

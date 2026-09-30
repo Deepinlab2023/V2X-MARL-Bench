@@ -10,6 +10,7 @@ from Networks.Agents.idql_agent import DQNAgent
 from Helpers.plotting_helper import plot_test_returns
 from Helpers.stat_helper import compute_random_baseline, compute_greedy_baseline, compute_exhaustive_baseline
 from Benchmarkers.idql_test import *
+from Benchmarkers.eval_sets import EvalSets
 from Environment.environment_utility import *
 
 
@@ -101,6 +102,8 @@ class IDQLtrainerNS:
         out_dir = os.path.join("Results", algo_name)
         os.makedirs(out_dir, exist_ok=True)
         csv_file = open(os.path.join(out_dir, csv_name), "w", newline="")
+        eval_sets = EvalSets(getattr(env_params, "eval_set_paths", None),
+                             os.path.join(out_dir, csv_name), env.n_agent)
         csv_writer = csv.writer(csv_file)
 
 
@@ -171,6 +174,11 @@ class IDQLtrainerNS:
                 )
 
                 print(f"Training reward at episode {te + 1}: {test_reward:.2f}")
+
+                if eval_sets:
+                    eval_sets.evaluate(te, lambda topologies: IDQLtester.test_IDQL_NoSharing(
+                        agent_list, env_params, len(topologies), env.n_agent, topologies, te,
+                        return_episode_rewards=True))
 
             for t in range(env_params.n_step_per_episode):
                 # _renew_fast_fading() is called inside env.step(); no explicit call needed.
@@ -256,6 +264,7 @@ class IDQLtrainerNS:
             episode_rewards.append(np.mean(total_rewards))
 
         csv_file.close()
+        eval_sets.close()
 
         if save_model:
             model_dir = os.path.join(out_dir, "models")
