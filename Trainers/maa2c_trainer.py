@@ -88,8 +88,8 @@ class MAA2CTrainer:
             actor_shared = A2CSharedActor(actor_input_dim, p).to(device)
             actors = None
 
-        # Centralized critic sees the full state: env.get_global_state for POSIG, env.get_state otherwise
-        critic_input_dim = p.global_state_dim if p.task_type == "POSIG" else p.state_dim
+        # Centralized critic sees the full state: env.get_global_state with per-agent states, env.get_state otherwise
+        critic_input_dim = p.global_state_dim if self.env.per_agent_state else p.state_dim
         critic = A2CCentralizedCritic(critic_input_dim, p).to(device)
 
         # Optimizers
@@ -124,31 +124,22 @@ class MAA2CTrainer:
             actions = []
             RRA_all_agents = np.zeros([p.n_agent, 1, 2], dtype="int32")
 
-            # Global state (used by centralized critic)
-            # For POSIG, env.get_state returns local obs, so use get_global_state instead
-            if p.task_type == "POSIG":
-                global_state = env.get_global_state(t)
+            # Global state (used by centralized critic, in its original order) and per-agent states
+            if env.per_agent_state:
+                agent_states, global_state = env.get_states(t)
+                observations = list(th.tensor(agent_states, dtype=th.float32, device=device))
             else:
                 global_state = env.get_state(0, t)
-            global_state = th.tensor(global_state, dtype=th.float32, device=device).squeeze()
-
-            # Collect observations for POSIG
-            if p.task_type == "POSIG":
-                observations = []
-            else:
                 observations = None
+            global_state = th.tensor(global_state, dtype=th.float32, device=device).squeeze()
 
             # Select actions for all agents
             for a in range(p.n_agent):
+                agent_state = observations[a] if observations is not None else global_state
                 if p.no_sharing:
-                    action = self._select_action_ns(a, global_state)
+                    action = self._select_action_ns(a, agent_state)
                 else:
-                    action = self._select_action_ps(
-                        a=a,
-                        global_state=global_state,
-                        observations=observations,
-                        t=t,
-                    )
+                    action = self._select_action_ps(a, agent_state)
 
                 actions.append(action.item())
                 sc_idx, power_idx = env.map_action_to_rra(action, agent_idx=a)
@@ -161,7 +152,7 @@ class MAA2CTrainer:
             global_reward = global_reward[0, 0]
 
             # Store transition
-            if p.task_type == "POSIG":
+            if env.per_agent_state:
                 buffer.append((global_state, observations, joint_action, global_reward))
             else:
                 buffer.append((global_state, joint_action, global_reward))
@@ -174,11 +165,10 @@ class MAA2CTrainer:
     # ==========================
     #   ACTION SELECTION (PS)
     # ==========================
-    def _select_action_ps(self, a, global_state, observations, t):
+    def _select_action_ps(self, a, agent_state):
         """
-        Parameter sharing case:
-        - FO (NFIG/SIG): use global_state + agent_id
-        - POSIG: use observation + agent_id
+        Parameter sharing case: agent_state + agent_id, where agent_state is the shared
+        global state (NFIG / SIG) or agent a's own state (POSIG observation / agent_first state).
         """
         p = self.params
         env = self.env
@@ -189,15 +179,7 @@ class MAA2CTrainer:
             num_classes=p.n_agent,
         ).float()
 
-        if p.task_type == "POSIG":
-            observation = env.get_state(a, t)
-            observation = th.tensor(observation, dtype=th.float32, device=device).squeeze()
-            observations.append(observation)
-
-            actor_input = th.cat([observation, agent_id], dim=-1)
-        else:
-            # FO PS (NFIG / SIG)
-            actor_input = th.cat([global_state, agent_id], dim=-1)
+        actor_input = th.cat([agent_state, agent_id], dim=-1)
 
         logits = actor_shared(actor_input)
 
@@ -213,14 +195,14 @@ class MAA2CTrainer:
     # ==========================
     #   ACTION SELECTION (NS)
     # ==========================
-    def _select_action_ns(self, a, global_state):
+    def _select_action_ns(self, a, agent_state):
         """
         No sharing: FO only, one actor per agent.
         """
         p = self.params
         env = self.env
 
-        logits = self.actors[a](global_state)
+        logits = self.actors[a](agent_state)
 
         if p.action_masking:
             queue_a = env.queue.flatten()[a]
@@ -279,8 +261,12 @@ class MAA2CTrainer:
         critic_loss.backward()
         self.opt_critic.step()
 
-        # Extract queues for FO masking
-        if p.task_type != "POSIG":
+        # Actor inputs and own queues (for masking)
+        if has_obs:
+            agent_states = [batch_observations[:, a, :].to(device) for a in range(p.n_agent)]
+            queues = th.stack([agent_states[a][:, self.env.own_queue_index(a)] for a in range(p.n_agent)], dim=1)
+        else:
+            agent_states = [batch_global_state] * p.n_agent
             queues = batch_global_state[:, -p.n_agent:]
 
         # Compute advantages
@@ -295,7 +281,7 @@ class MAA2CTrainer:
         if p.no_sharing:
             # NS: update each actor separately
             for a in range(p.n_agent):
-                logits = self.actors[a](batch_global_state.to(device))
+                logits = self.actors[a](agent_states[a].to(device))
 
                 if p.action_masking:
                     done_mask = (queues[:, a] <= 0)
@@ -324,13 +310,8 @@ class MAA2CTrainer:
                 ).float()
                 agent_id = agent_id.unsqueeze(0).repeat(B, 1)
 
-                if has_obs and p.task_type == "POSIG":
-                    agent_base = batch_observations[:, a, :].to(device)
-                    queue = agent_base[:, -1]
-                else:
-                    agent_base = batch_global_state.to(device)
-                    if p.task_type != "POSIG":
-                        queue = queues[:, a]
+                agent_base = agent_states[a].to(device)
+                queue = queues[:, a]
 
                 actor_input = th.cat([agent_base, agent_id], dim=-1)
                 logits = self.actor_shared(actor_input)

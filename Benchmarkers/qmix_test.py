@@ -18,7 +18,7 @@ class QMIXtester:
 
         Refactored to match IDQLtester loop:
         - env.train_data = test_data
-        - env.get_state(ag_idx, t)
+        - env.get_agent_state_list(t)
         - env.map_action_to_rra(action, agent_idx)
         - env.step(RRA_all_agents, t) -> (global_reward, done)
         - epsilon forced to 0 for greedy evaluation
@@ -40,10 +40,7 @@ class QMIXtester:
 
             for t in range(params.n_step_per_episode):
                 # --- States ---
-                ag_state_list = []
-                for ag_idx in range(len(agent_list)):
-                    ag_state = env.get_state(ag_idx, t)
-                    ag_state_list.append(ag_state)
+                ag_state_list = env.get_agent_state_list(t)
 
                 # --- Actions -> RRA ---
                 RRA_all_agents = np.zeros([len(agent_list), 1, 2], dtype="int32")

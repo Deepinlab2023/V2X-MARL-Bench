@@ -42,81 +42,6 @@ class QNetwork(nn.Module):
         return self.layer3(x)
 
 
-class GNNQNetwork(nn.Module):
-    """
-    Q-network of agent `agent_idx` on the SIG global state, read as a graph.
-
-    Nodes are the agents' V2V links; node k = [g_i, g_iB, g_Bi, I_prev, queue] of agent k.
-    The edge to neighbour j = [interference j -> agent_idx, interference agent_idx -> j].
-    Common features = [time encoding, g_m]. One round of message passing:
-        message_j = tanh(W_m [node_j, edge_j]),   h = tanh(W_u [node_self, mean_j message_j]),
-    then Q = MLP([node_self, h, common]) with the same layers as QNetwork.
-    `layout` gives the offsets of the state blocks (Environ.sig_state_layout()).
-    """
-
-    def __init__(self, layout, agent_idx, n_actions, hidden_dim=128, message_dim=64, gnn_hidden_dim=64):
-        super(GNNQNetwork, self).__init__()
-        self.layout = layout
-        self.agent_idx = agent_idx
-        n_agent, n_sc, sc_mult = layout["n_agent"], layout["n_sc"], layout["sc_mult"]
-
-        # Neighbours j != agent_idx, and where each block of g_ji holds the two directions:
-        # g_ji is (receiver i, interferer j != i), interferers listed in increasing order.
-        self.neighbours = [j for j in range(n_agent) if j != agent_idx]
-        self.out_pos = [agent_idx if agent_idx < j else agent_idx - 1 for j in self.neighbours]
-
-        node_dim = 2 * sc_mult + 2 * n_sc + 1
-        edge_dim = 2 * sc_mult
-        common_dim = (layout["t"][1] - layout["t"][0]) + n_sc
-
-        self.message = nn.Linear(node_dim + edge_dim, message_dim)
-        self.update = nn.Linear(node_dim + message_dim, gnn_hidden_dim)
-
-        self.layer1 = nn.Linear(node_dim + gnn_hidden_dim + common_dim, hidden_dim)
-        self.layer_norm1 = nn.LayerNorm(hidden_dim)
-        self.layer2 = nn.Linear(hidden_dim, hidden_dim)
-        self.layer_norm2 = nn.LayerNorm(hidden_dim)
-        self.layer3 = nn.Linear(hidden_dim, n_actions)
-
-    def graph_inputs(self, x):
-        """Split a batch of SIG states (B, state_dim) into (nodes, edges, common)."""
-        lay = self.layout
-        n_agent, n_sc, sc_mult = lay["n_agent"], lay["n_sc"], lay["sc_mult"]
-        batch = x.shape[0]
-
-        def block(name, *shape):
-            start, end = lay[name]
-            return x[:, start:end].reshape(batch, *shape)
-
-        nodes = th.cat((
-            block("g_i", n_agent, sc_mult),
-            block("g_ib", n_agent, sc_mult),
-            block("g_bi", n_agent, n_sc),
-            block("i_prev", n_agent, n_sc),
-            block("queue", n_agent, 1),
-        ), dim=-1)
-
-        g_ji = block("g_ji", n_agent, n_agent - 1, sc_mult)
-        incoming = g_ji[:, self.agent_idx]                          # j -> agent_idx
-        outgoing = g_ji[:, self.neighbours, self.out_pos]           # agent_idx -> j
-        edges = th.cat((incoming, outgoing), dim=-1)
-
-        common = th.cat((block("t", -1), block("g_m", n_sc)), dim=-1)
-        return nodes, edges, common
-
-    def forward(self, x):
-        nodes, edges, common = self.graph_inputs(x)
-        node_self = nodes[:, self.agent_idx]
-
-        messages = th.tanh(self.message(th.cat((nodes[:, self.neighbours], edges), dim=-1)))
-        h = th.tanh(self.update(th.cat((node_self, messages.mean(dim=1)), dim=-1)))
-
-        x = th.cat((node_self, h, common), dim=-1)
-        x = F.relu(self.layer_norm1(self.layer1(x)))
-        x = F.relu(self.layer_norm2(self.layer2(x)))
-        return self.layer3(x)
-
-
 class DQNAgent:
     def __init__(
         self,
@@ -134,10 +59,7 @@ class DQNAgent:
         hysteretic_high_lr: float,
         hysteretic_low_lr: float,
         force_nt_when_empty: bool,
-        network: str = "fc",
-        state_layout=None,
-        gnn_message_dim: int = 64,
-        gnn_hidden_dim: int = 64,
+        queue_index: int,
     ):
 
         self.ag_idx = ag_idx
@@ -148,7 +70,7 @@ class DQNAgent:
 
         # NT constraint
         self.force_nt_when_empty = force_nt_when_empty
-        self.queue_index = state_dim - num_agents + ag_idx
+        self.queue_index = queue_index  # position of this agent's own queue in its state
 
         # Replay buffer
         self.memory = ReplayMemory(memory_capacity)
@@ -169,14 +91,8 @@ class DQNAgent:
         self.device = th.device("cuda" if th.cuda.is_available() else "cpu")
 
         # Networks
-        if network == "gnn":
-            self.q_net = GNNQNetwork(state_layout, ag_idx, action_dim, hidden_dim,
-                                     gnn_message_dim, gnn_hidden_dim).to(self.device)
-            self.target_net = GNNQNetwork(state_layout, ag_idx, action_dim, hidden_dim,
-                                          gnn_message_dim, gnn_hidden_dim).to(self.device)
-        else:
-            self.q_net = QNetwork(state_dim, action_dim, hidden_dim).to(self.device)
-            self.target_net = QNetwork(state_dim, action_dim, hidden_dim).to(self.device)
+        self.q_net = QNetwork(state_dim, action_dim, hidden_dim).to(self.device)
+        self.target_net = QNetwork(state_dim, action_dim, hidden_dim).to(self.device)
         self.target_net.load_state_dict(self.q_net.state_dict())
         self.optimizer = th.optim.Adam(self.q_net.parameters(), lr=self.lr)
 
@@ -246,8 +162,7 @@ class DQNAgent:
 
         # Enforce constraint on current Q-values
         if self.force_nt_when_empty:
-            all_agent_queues = state_batch[:, -self.num_agents:]
-            current_queue = all_agent_queues[:, self.ag_idx]
+            current_queue = state_batch[:, self.queue_index]
             queue_empty_mask = (current_queue == 0.0)
             nt_action_idx = self.action_dim - 1
             corrected_action_batch = th.where(
@@ -266,8 +181,7 @@ class DQNAgent:
                 all_next_q_values = self.target_net(non_final_next_states)
 
                 if self.force_nt_when_empty:
-                    all_agent_queues = non_final_next_states[:, -self.num_agents:]
-                    next_queue_value = all_agent_queues[:, self.ag_idx]
+                    next_queue_value = non_final_next_states[:, self.queue_index]
                     queue_empty_mask = (next_queue_value == 0.00)
                     nt_action_idx = self.action_dim - 1
                     best_actions = all_next_q_values.max(1).indices

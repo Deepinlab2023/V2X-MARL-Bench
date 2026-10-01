@@ -153,6 +153,30 @@ class Environ:
                                  self.n_agent * self.n_sc + self.n_agent)
 
         self.local_state_dim = timestep_dims + sc_mult + sc_mult + self.n_sc + 1
+        # POSIG observation size (t, own G_i, G_iB, I_prev, queue), whatever the state order
+        self.local_obs_dim = self.local_state_dim
+
+        # ---------------------------------------------------------------------
+        # State order (see _agent_first_index)
+        #   "global":             SIG: one global state shared by all agents; POSIG: local observation
+        #   "agent_first":        SIG: per-agent reordering of the global state, own components first
+        #   "agent_first_masked": POSIG: the agent_first state with every non-observed component set to 0
+        # ---------------------------------------------------------------------
+        self.state_order = getattr(params, "state_order", "global")
+        if self.state_order not in ("global", "agent_first", "agent_first_masked"):
+            raise ValueError(f"Unknown state_order: {self.state_order}")
+        if self.state_order == "agent_first" and self.task_type != "SIG":
+            raise ValueError("state_order='agent_first' is for SIG (SL or ML).")
+        if self.state_order == "agent_first_masked" and self.task_type != "POSIG":
+            raise ValueError("state_order='agent_first_masked' is for POSIG.")
+
+        # True when get_state() differs between agents (agents then each get their own state)
+        self.per_agent_state = self.task_type == "POSIG" or self.state_order == "agent_first"
+        if self.state_order == "agent_first":
+            self.local_state_dim = self.state_dim
+        elif self.state_order == "agent_first_masked":
+            self.state_dim = self.local_state_dim = self.global_state_dim
+        self._agent_index = self._agent_first_index() if self.task_type != "NFIG" else None
 
 
     # =========================================================================
@@ -547,15 +571,78 @@ class Environ:
         """
         if self.task_type == "NFIG":
             return self._get_state_NFIG(t)
-        elif self.task_type == "SIG":
-            return self._get_state_SIG(t)
-        elif self.task_type == "POSIG":
-            return self._get_state_POSIG(ag_idx, t)
-        else:
-            raise ValueError(f"Unknown task_type: {self.task_type}")
+        if self.per_agent_state:
+            return self.get_agent_states(t)[ag_idx:ag_idx + 1]
+        return self._get_state_SIG(t)
 
     def get_global_state(self, t):
         return self._get_state_SIG(t)
+
+    def get_agent_states(self, t):
+        """States of all agents, shape (n_agent, state_dim); row i is get_state(i, t)."""
+        if not self.per_agent_state:
+            return np.repeat(self.get_state(0, t), self.n_agent, axis=0)
+        return self._agent_states(self._get_state_SIG(t))
+
+    def get_agent_state_list(self, t):
+        """[get_state(i, t) for every agent i]; one shared array when all agents have the same state."""
+        if not self.per_agent_state:
+            return [self.get_state(0, t)] * self.n_agent
+        states = self.get_agent_states(t)
+        return [states[i:i + 1] for i in range(self.n_agent)]
+
+    def get_states(self, t):
+        """(get_agent_states(t), get_global_state(t)) from a single state computation (SIG / POSIG)."""
+        global_state = self._get_state_SIG(t)
+        return self._agent_states(global_state), global_state
+
+    def _agent_states(self, global_state):
+        """Per-agent states gathered from the SIG global state (1, global_state_dim)."""
+        g = global_state[0]
+        if self.state_order == "agent_first":
+            return g[self._agent_index]
+        obs = g[self._agent_index[:, :self.local_obs_dim]]  # POSIG observation = agent_first prefix
+        if self.state_order == "global":
+            return obs
+        states = np.zeros((self.n_agent, self.global_state_dim))
+        states[:, :self.local_obs_dim] = obs
+        return states
+
+    def own_queue_index(self, ag_idx):
+        """Index of agent ag_idx's own queue in its state get_state(ag_idx, t)."""
+        if self.per_agent_state:
+            return self.local_obs_dim - 1
+        return self.state_dim - self.n_agent + ag_idx
+
+    def _agent_first_index(self):
+        """
+        (n_agent, global_state_dim) gather index; row i reorders the SIG global state for agent i:
+          [t, G_i, G_iB, I_prev, q of agent i                (= POSIG observation of agent i)
+           | G_ji into agent i's receiver, G_Bi of agent i
+           | G_m, then G_i, G_ji, G_Bi, G_iB, I_prev, q of the other agents (increasing index)]
+        Every row is a permutation: same information and dimension as the global state.
+        """
+        lay = self.sig_state_layout()
+        A, M, sm = lay["n_agent"], lay["n_sc"], lay["sc_mult"]
+        widths = {"g_i": sm, "g_ji": (A - 1) * sm, "g_bi": M, "g_ib": sm, "i_prev": M, "queue": 1}
+
+        def part(name, i):
+            start = lay[name][0] + i * widths[name]
+            return np.arange(start, start + widths[name])
+
+        def others(name, i):
+            return np.concatenate([part(name, j) for j in range(A) if j != i])
+
+        rows = []
+        for i in range(A):
+            rows.append(np.concatenate(
+                [np.arange(*lay["t"])] + [part(n, i) for n in ("g_i", "g_ib", "i_prev", "queue")]
+                + [part(n, i) for n in ("g_ji", "g_bi")]
+                + [np.arange(*lay["g_m"])] + [others(n, i) for n in ("g_i", "g_ji", "g_bi", "g_ib", "i_prev", "queue")]
+            ))
+        index = np.stack(rows)
+        assert all(np.array_equal(np.sort(row), np.arange(self.global_state_dim)) for row in index)
+        return index
 
     def _get_state_NFIG(self, t):
         """State for NFIG: G_i + G_ji"""
@@ -660,53 +747,6 @@ class Environ:
             pair_i, pair_j = np.nonzero(~np.eye(self.n_agent, dtype=bool))
             self._sig_idx_cache = (tx, rx, pair_i, pair_j)
         return self._sig_idx_cache
-
-    def _get_state_POSIG(self, ag_idx, t):
-        """Observation for POSIG: t + G_i + G_iB + I_prev + queue (per agent)"""
-
-        def norm_gain(pl_db, gain_type):
-            if self.static_norm:
-                return pl_db / self.norm_v2v_channel_factor
-            else:
-                lo_db, hi_db = self.pathloss_bounds[gain_type]
-                return np.clip((pl_db - lo_db) / max(hi_db - lo_db, 1e-9), 0.0, 1.0)
-
-        state = np.array([])
-
-        if self.timestep_encoding_type == 'normalized':
-            t_enc = np.array([t / self.n_step_per_episode])
-        else:
-            t_enc = np.zeros(self.n_step_per_episode)
-            t_enc[min(t, self.n_step_per_episode - 1)] = 1
-
-        veh_tx = self.agent_to_veh[ag_idx]
-        veh_rx = self._get_rx_veh_idx(ag_idx)
-        if self.fast_fading_enabled:
-            g_i = np.array([norm_gain(self.v2v_pathloss_with_ff[veh_tx, veh_rx, m], 'v2v_link')
-                            for m in range(self.n_sc)])
-            g_ib = np.array([norm_gain(self.v2v_pathloss_to_bs_with_ff[veh_tx, m], 'veh_to_bs')
-                             for m in range(self.n_sc)])
-        else:
-            g_i = np.array([norm_gain(self.v2v_pathloss[veh_tx, veh_rx], 'v2v_link')])
-            g_ib = np.array([norm_gain(self.v2v_pathloss_to_bs[veh_tx], 'veh_to_bs')])
-
-        if not hasattr(self, 'previous_interference_per_sc'):
-            self.previous_interference_per_sc = np.zeros((self.n_agent, self.n_sc))
-
-        intf_mw = self.previous_interference_per_sc[ag_idx, :].copy()
-        intf_dbm = 10.0 * np.log10(np.maximum(intf_mw, 1e-30))
-        noise_dbm = 10.0 * np.log10(self.noise_power_mw)
-        inr_db = intf_dbm - noise_dbm
-        inr_min, inr_max = self.inr_norm_bounds
-        i_prev = (np.clip(inr_db, inr_min, inr_max) - inr_min) / (inr_max - inr_min)
-
-        queue_norm = np.array([self.queue[ag_idx, 0] / self.max_queue_length])
-
-        for state_info in [t_enc, g_i, g_ib, i_prev, queue_norm]:
-            state = np.hstack((state, state_info))
-
-        state = state.reshape((1, -1))
-        return state
 
     # =========================================================================
     # Interference Computation

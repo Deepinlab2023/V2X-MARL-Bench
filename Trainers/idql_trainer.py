@@ -45,20 +45,7 @@ class IDQLtrainerNS:
         trial_run=0,
         save_model=True,
     ):
-        # --- Determine input dimension based on task type ---
-        if env_name == "POSIG":
-            input_dim = env.local_state_dim
-        else:
-            input_dim = env.state_dim
-
-        # GNN reads the SIG global state as a graph, so it needs the SIG state layout
-        if algo_params.network not in ("fc", "gnn"):
-            raise ValueError(f"Unknown network '{algo_params.network}' (use 'fc' or 'gnn').")
-        state_layout = None
-        if algo_params.network == "gnn":
-            if env_name != "SIG":
-                raise ValueError("network='gnn' needs the SIG global state (SIG ML / SIG SL).")
-            state_layout = env.sig_state_layout()
+        input_dim = env.state_dim
 
         # --- Agents ---
         agent_list = []
@@ -79,10 +66,7 @@ class IDQLtrainerNS:
                     hysteretic_high_lr=algo_params.hysteretic_high_lr,
                     hysteretic_low_lr=algo_params.hysteretic_low_lr,
                     force_nt_when_empty=algo_params.force_nt_when_empty,
-                    network=algo_params.network,
-                    state_layout=state_layout,
-                    gnn_message_dim=algo_params.gnn_message_dim,
-                    gnn_hidden_dim=algo_params.gnn_hidden_dim,
+                    queue_index=env.own_queue_index(veh_idx),
                 )
             )
 
@@ -110,8 +94,8 @@ class IDQLtrainerNS:
             trial_run=trial_run,
             ts=ts,
             loc=env_params.loc,
-            features="GNN" if algo_params.network == "gnn" else None,
             seed=getattr(env_params, "seed", None),
+            state_order=env.state_order,
         )
         out_dir = os.path.join("Results", algo_name)
         os.makedirs(out_dir, exist_ok=True)
@@ -198,17 +182,12 @@ class IDQLtrainerNS:
                 # _renew_fast_fading() is called inside env.step(); no explicit call needed.
 
                 # --- Get states ---
-                # POSIG: each agent has a distinct local observation.
-                # NFIG/SIG: get_state() ignores ag_idx — call once and share.
                 # After the first step, the states at t are the next states computed after
                 # step t-1: the environment does not change in between.
                 if t > 0:
                     ag_state_list = ag_next_state_list
-                elif env_name == "POSIG":
-                    ag_state_list = [env.get_state(ag_idx, t) for ag_idx in range(len(agent_list))]
                 else:
-                    shared_state = env.get_state(0, t)
-                    ag_state_list = [shared_state] * len(agent_list)
+                    ag_state_list = env.get_agent_state_list(t)
 
                 ag_action_list = []
                 joint_action = []
@@ -253,11 +232,7 @@ class IDQLtrainerNS:
                 total_rewards += global_reward
 
                 # --- Get next states ---
-                if env_name == "POSIG":
-                    ag_next_state_list = [env.get_state(ag_idx, t + 1) for ag_idx in range(len(agent_list))]
-                else:
-                    shared_next_state = env.get_state(0, t + 1)
-                    ag_next_state_list = [shared_next_state] * len(agent_list)
+                ag_next_state_list = env.get_agent_state_list(t + 1)
 
                 for ag_idx in range(len(agent_list)):
                     transition = (

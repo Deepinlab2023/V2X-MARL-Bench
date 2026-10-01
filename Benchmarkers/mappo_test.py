@@ -69,12 +69,12 @@ class MAPPOtester:
         for t in range(n_steps):
             rra = np.zeros((p.n_agent, 1, 2), dtype=np.int32)
 
-            # FO state (NFIG/SIG) shared for all agents; POSIG uses per-agent obs
-            if p.task_type != "POSIG":
+            # One state shared by all agents (NFIG / SIG), or one per agent (POSIG / agent_first)
+            if not env.per_agent_state:
                 state_np = env.get_state(0, t)
                 state = th.tensor(state_np, dtype=th.float32, device=device).squeeze()
             else:
-                state = None
+                agent_states = th.tensor(env.get_agent_states(t), dtype=th.float32, device=device)
 
             for a in range(p.n_agent):
                 agent_id = F.one_hot(
@@ -82,12 +82,7 @@ class MAPPOtester:
                     num_classes=p.n_agent,
                 ).float()
 
-                if p.task_type == "POSIG":
-                    obs_np = env.get_state(a, t)
-                    obs = th.tensor(obs_np, dtype=th.float32, device=device).squeeze()
-                    logits = actor(obs, agent_id)
-                else:
-                    logits = actor(state, agent_id)
+                logits = actor(agent_states[a] if env.per_agent_state else state, agent_id)
 
                 # # Greedy action (before)
                 # action_id = int(th.argmax(logits, dim=-1).item())

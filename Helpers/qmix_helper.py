@@ -206,8 +206,7 @@ class QMIXLearner:
             action_batch = th.cat(action_list[ag_idx]).unsqueeze(1).to(self.device)
 
             if agent.force_nt_when_empty:
-                all_agent_queues = state_batch[:, -agent.num_agents:]
-                current_queue = all_agent_queues[:, agent.ag_idx]
+                current_queue = state_batch[:, agent.queue_index]
                 queue_empty_mask = current_queue == 0.0
                 nt_action_idx = agent.action_dim - 1
                 corrected_action_batch = th.where(
@@ -231,8 +230,7 @@ class QMIXLearner:
                 all_next_q = agent.target_net(non_final_next_states)
 
                 if agent.force_nt_when_empty:
-                    all_agent_queues = non_final_next_states[:, -agent.num_agents:]
-                    next_queue = all_agent_queues[:, agent.ag_idx]
+                    next_queue = non_final_next_states[:, agent.queue_index]
                     queue_empty_mask = next_queue == 0.0
                     nt_action_idx = agent.action_dim - 1
 

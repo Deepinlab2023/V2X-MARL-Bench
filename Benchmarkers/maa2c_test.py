@@ -71,20 +71,19 @@ class MAA2Ctester:
         for t in range(p.n_step_per_episode):
             RRA_all_agents = np.zeros([p.n_agent, 1, 2], dtype="int32")
 
-            # For FO (NFIG/SIG), get_state returns global state
-            # For POSIG, get_state returns local obs, so use get_global_state for consistency
-            if p.task_type == "POSIG":
-                global_state = env.get_global_state(t)
+            if env.per_agent_state:
+                agent_states = th.tensor(env.get_agent_states(t), dtype=th.float32, device=device)
             else:
                 global_state = env.get_state(0, t)
-            global_state = th.tensor(global_state, dtype=th.float32, device=device).squeeze()
+                global_state = th.tensor(global_state, dtype=th.float32, device=device).squeeze()
 
-            # Select actions
+            # select actions
             for a in range(p.n_agent):
+                agent_state = agent_states[a] if env.per_agent_state else global_state
                 if p.no_sharing:
-                    action = self._select_action_ns(a, global_state)
+                    action = self._select_action_ns(a, agent_state)
                 else:
-                    action = self._select_action_ps(a, global_state, t)
+                    action = self._select_action_ps(a, agent_state)
 
                 sc_idx, power_idx = env.map_action_to_rra(action, agent_idx=a)
                 RRA_all_agents[a, 0, 0] = sc_idx
@@ -99,11 +98,10 @@ class MAA2Ctester:
     # ==========================
     #   ACTION SELECTION (PS)
     # ==========================
-    def _select_action_ps(self, a, global_state, t):
+    def _select_action_ps(self, a, agent_state):
         """
-        Parameter sharing case:
-        - FO (NFIG/SIG): use global_state + agent_id
-        - POSIG: use observation + agent_id
+        Parameter sharing case: agent_state + agent_id, where agent_state is the shared
+        global state (NFIG / SIG) or agent a's own state (POSIG observation / agent_first state).
         """
         p = self.params
         env = self.env
@@ -114,13 +112,7 @@ class MAA2Ctester:
             num_classes=p.n_agent,
         ).float()
 
-        if p.task_type == "POSIG":
-            observation = env.get_state(a, t)
-            observation = th.tensor(observation, dtype=th.float32, device=device).squeeze()
-            actor_input = th.cat([observation, agent_id], dim=-1)
-        else:
-            # FO PS (NFIG / SIG)
-            actor_input = th.cat([global_state, agent_id], dim=-1)
+        actor_input = th.cat([agent_state, agent_id], dim=-1)
 
         logits = actor_shared(actor_input)
 
@@ -136,7 +128,7 @@ class MAA2Ctester:
     # ==========================
     #   ACTION SELECTION (NS)
     # ==========================
-    def _select_action_ns(self, a, global_state):
+    def _select_action_ns(self, a, agent_state):
         """
         No sharing: FO only, one actor per agent.
         """
@@ -144,7 +136,7 @@ class MAA2Ctester:
         env = self.env
         actor = self.policy[a]
 
-        logits = actor(global_state)
+        logits = actor(agent_state)
 
         if p.action_masking:
             queue_a = env.queue.flatten()[a]

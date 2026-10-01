@@ -35,6 +35,7 @@ class QMIXAgent:
         tau: float,
         hidden_dim: int,
         force_nt_when_empty: bool,
+        queue_index: int,
     ):
         self.ag_idx = ag_idx
         self.num_agents = num_agents
@@ -55,6 +56,7 @@ class QMIXAgent:
         self.target_net.load_state_dict(self.q_net.state_dict())
 
         self.force_nt_when_empty = force_nt_when_empty
+        self.queue_index = queue_index  # position of this agent's own queue in its state
 
     @staticmethod
     def _to_tensor(data: Union[np.ndarray, th.Tensor, float, int], device: th.device) -> th.Tensor:

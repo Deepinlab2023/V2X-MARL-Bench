@@ -70,6 +70,7 @@ class A2CHelper:
             loc=params.loc,
             features=features,
             seed=getattr(params.env_params, "seed", None),
+            state_order=params.env.state_order,
         )
 
         out_dir = os.path.join("Results", effective_algo)
@@ -130,25 +131,25 @@ class A2CHelper:
         rtrns.reverse()
         return th.tensor(np.array(rtrns), dtype=th.float32, device=device)
 
-    # ---------- batch building (FO vs POSIG, IA2C vs MAA2C) ----------
+    # ---------- batch building (shared vs per-agent states, IA2C vs MAA2C) ----------
     @staticmethod
     def build_batches(params, batch_buffer, batch_rtrns, ctde: bool):
         batch_training = A2CBatchTraining()
-        task_type = params.task_type
+        per_agent = params.env.per_agent_state
 
-        if task_type == "POSIG":
+        if per_agent:
             if ctde:
                 (batch_global_state, batch_observations, batch_joint_actions, batch_rtrns_tensor) = \
-                    batch_training.collate_batch(batch_buffer, batch_rtrns, task_type, ctde=True)
+                    batch_training.collate_batch(batch_buffer, batch_rtrns, per_agent, ctde=True)
                 has_obs = True
             else:
                 (batch_observations, batch_joint_actions, batch_rtrns_tensor) = \
-                    batch_training.collate_batch(batch_buffer, batch_rtrns, task_type, ctde=False)
+                    batch_training.collate_batch(batch_buffer, batch_rtrns, per_agent, ctde=False)
                 batch_global_state = None
                 has_obs = True
         else:
             (batch_global_state, batch_joint_actions, batch_rtrns_tensor) = \
-                batch_training.collate_batch(batch_buffer, batch_rtrns, task_type, ctde=ctde)
+                batch_training.collate_batch(batch_buffer, batch_rtrns, per_agent, ctde=ctde)
             batch_observations = None
             has_obs = False
 
@@ -224,14 +225,15 @@ class A2CBatchTraining:
     def __init__(self):
         pass
 
-    def collate_batch(self, buffer, rtrns, task_type, ctde: bool):
+    def collate_batch(self, buffer, rtrns, per_agent: bool, ctde: bool):
+        """per_agent: buffer items hold one state per agent (observations), plus the global state if ctde."""
         batch_joint_actions = []
         batch_rtrns_list = []
         batch_global_states = []
         batch_observations = []
 
         for (data, R) in zip(buffer, rtrns):
-            if task_type == "POSIG":
+            if per_agent:
                 if ctde:
                     global_state, observations, joint_action, _ = data
                     batch_global_states.append(global_state)
@@ -250,7 +252,7 @@ class A2CBatchTraining:
         batch_joint_actions = th.tensor(batch_joint_actions, dtype=th.long, device=device)  # [N, A]
         batch_rtrns = th.tensor(batch_rtrns_list, dtype=th.float32, device=device)         # [N]
 
-        if task_type == "POSIG":
+        if per_agent:
             batch_observations = th.stack(batch_observations).to(device)  # [N, A, obs_dim]
             if ctde:
                 batch_global_states = th.stack(batch_global_states).to(device)  # [N, state_dim]

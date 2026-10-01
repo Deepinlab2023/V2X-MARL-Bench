@@ -23,6 +23,17 @@ if platform.system() == "Linux":
     os.environ['MKL_NUM_THREADS'] = '1'
 
 
+def agent_and_mixer_states(env, env_name, t):
+    """Per-agent states (list of (1, state_dim)) and the mixer state: the SIG global state in its original order."""
+    if env.per_agent_state:
+        states, global_state = env.get_states(t)
+        return [states[i:i + 1] for i in range(env.n_agent)], global_state
+    shared_state = env.get_state(0, t)
+    # SIG: get_state() already is the SIG global state
+    global_state = shared_state if env_name == "SIG" else env.get_global_state(t)
+    return [shared_state] * env.n_agent, global_state
+
+
 class QMIXtrainerPS:
     @staticmethod
     def train_QMIX_ParameterSharing(trial_run, env, env_name, env_params, test_data_list,
@@ -43,11 +54,7 @@ class QMIXtrainerNS:
         trial_run=0,
         save_model=True,
     ):
-        # --- Determine input dimension based on task type ---
-        if env_name == "POSIG":
-            input_dim = env.local_state_dim
-        else:
-            input_dim = env.state_dim
+        input_dim = env.state_dim
 
         # === QMIX Agent Initialization ===
         agent_list = []
@@ -62,6 +69,7 @@ class QMIXtrainerNS:
                     tau=algo_params.tau,
                     hidden_dim=algo_params.hidden_dim,
                     force_nt_when_empty=algo_params.force_nt_when_empty,
+                    queue_index=env.own_queue_index(veh_idx),
                 )
             )
 
@@ -102,6 +110,7 @@ class QMIXtrainerNS:
             ts=ts,
             loc=env_params.loc,
             seed=getattr(env_params, "seed", None),
+            state_order=env.state_order,
         )
         out_dir = os.path.join("Results", algo_name)
         os.makedirs(out_dir, exist_ok=True)
@@ -156,24 +165,14 @@ class QMIXtrainerNS:
             for t in range(env_params.n_step_per_episode):
                 # _renew_fast_fading() is called inside env.step(); no explicit call needed.
 
-                # --- Get states ---
-                # POSIG: each agent has a distinct local observation.
-                # NFIG/SIG: get_state() ignores ag_idx — call once and share.
+                # --- Get states (agents) and global state (mixer) ---
                 # After the first step, the states at t are the next states computed after
                 # step t-1: the environment does not change in between.
                 if t > 0:
                     ag_state_list = ag_next_state_list
                     global_state = global_next_state
                 else:
-                    if env_name == "POSIG":
-                        ag_state_list = [env.get_state(ag_idx, t) for ag_idx in range(len(agent_list))]
-                    else:
-                        shared_state = env.get_state(0, t)
-                        ag_state_list = [shared_state] * len(agent_list)
-
-                    # --- Get global state for mixer (always use SIG state) ---
-                    # For SIG, get_state() already is the SIG state.
-                    global_state = shared_state if env_name == "SIG" else env.get_global_state(t)
+                    ag_state_list, global_state = agent_and_mixer_states(env, env_name, t)
 
                 # --- Get actions ---
                 ag_action_list = []
@@ -192,15 +191,7 @@ class QMIXtrainerNS:
                 total_rewards += global_reward
 
                 # --- Get next states ---
-                if env_name == "POSIG":
-                    ag_next_state_list = [env.get_state(ag_idx, t + 1) for ag_idx in range(len(agent_list))]
-                else:
-                    shared_next_state = env.get_state(0, t + 1)
-                    ag_next_state_list = [shared_next_state] * len(agent_list)
-
-                # --- Get next global state for mixer ---
-                global_next_state = (shared_next_state if env_name == "SIG"
-                                     else env.get_global_state(t + 1))
+                ag_next_state_list, global_next_state = agent_and_mixer_states(env, env_name, t + 1)
 
                 # --- Store transition ---
                 qmix_learner.store_transition(

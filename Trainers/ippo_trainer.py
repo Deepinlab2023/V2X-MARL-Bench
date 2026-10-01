@@ -31,6 +31,8 @@ class IPPO_TrainerPS:
         self.env = params.env
 
         self.task_type = params.task_type
+        # True: each agent has its own state (POSIG observation / agent_first state)
+        self.per_agent = self.env.per_agent_state
         self.n_agent = params.n_agent
         self.n_sc = params.n_sc
         self.ff_on = getattr(params, "fast_fading_enabled", getattr(self.env, "fast_fading_enabled", False))
@@ -160,10 +162,10 @@ class IPPO_TrainerPS:
     def _collect_single_episode(self):
         p = self.params
         env = self.env
-        task_type = self.task_type
+        per_agent = self.per_agent
         n_agent = self.n_agent
 
-        if task_type == "POSIG":
+        if per_agent:
             observation_history = []
             global_state_history = None
         else:
@@ -188,8 +190,8 @@ class IPPO_TrainerPS:
 
             rra = np.zeros((n_agent, 1, 2), dtype=np.int32)
 
-            if task_type == "POSIG":
-                observations = []
+            if per_agent:
+                observations = list(th.tensor(env.get_agent_states(t), dtype=th.float32).to(device))
                 global_state = None
             else:
                 global_state = self._get_global_state(t)
@@ -198,10 +200,8 @@ class IPPO_TrainerPS:
                 with th.no_grad():
                     agent_id = F.one_hot(th.tensor(a), num_classes=n_agent).float().to(device)
 
-                    if task_type == "POSIG":
-                        obs_np = env.get_state(a, t)
-                        obs = th.tensor(obs_np, dtype=th.float32).squeeze().to(device)
-                        observations.append(obs)
+                    if per_agent:
+                        obs = observations[a]
                         logits = self.actor_shared(obs, agent_id)
                     else:
                         logits = self.actor_shared(global_state, agent_id)
@@ -220,7 +220,7 @@ class IPPO_TrainerPS:
                     rra[a, 0, 0] = sc
                     rra[a, 0, 1] = pw
 
-                    v = self.critic_shared(obs, agent_id) if task_type == "POSIG" else self.critic_shared(global_state, agent_id)
+                    v = self.critic_shared(obs, agent_id) if per_agent else self.critic_shared(global_state, agent_id)
                     if p.popart:
                         # PopArt head is normalized; GAE needs raw-scale values to match raw rewards
                         v = self.value_normalizer.denormalize(v)
@@ -232,7 +232,7 @@ class IPPO_TrainerPS:
 
             global_reward, done = env.step(rra, t)
 
-            if task_type == "POSIG":
+            if per_agent:
                 observation_history.append(th.stack(observations, dim=0))
             else:
                 global_state_history.append(global_state)
@@ -250,7 +250,7 @@ class IPPO_TrainerPS:
             global_reward_history, value_history, done_history, p.gamma, p.lam
         )
 
-        if task_type == "POSIG":
+        if per_agent:
             return (
                 observation_history,
                 joint_action_history,
@@ -308,7 +308,7 @@ class IPPO_TrainerPS:
         return th.utils.data.TensorDataset(*batch)
 
     def _unpack_minibatch(self, mb):
-        if self.task_type == "POSIG":
+        if self.per_agent:
             observations_mb, joint_actions_mb, log_probs_mb, values_mb, returns_mb, advantages_mb = mb
             observations_mb = observations_mb.to(device)
             global_states_mb = None
@@ -332,7 +332,7 @@ class IPPO_TrainerPS:
 
     def _ppo_update_epochs(self, batch):
         p = self.params
-        task_type = self.task_type
+        per_agent = self.per_agent
         n_agent = self.n_agent
 
         dataset = self._make_dataset(batch)
@@ -354,7 +354,7 @@ class IPPO_TrainerPS:
 
                 advantages_normalized = self._compute_advantages_normalized(advantages_mb)
 
-                if task_type != "POSIG":
+                if not per_agent:
                     queues_mb = global_states_mb[:, -n_agent:]
 
                 # ---- Critic update ----
@@ -365,7 +365,7 @@ class IPPO_TrainerPS:
                     agent_id = F.one_hot(th.tensor(a), num_classes=n_agent).float()
                     agent_id = agent_id.unsqueeze(0).repeat(joint_actions_mb.size(0), 1).to(device)
 
-                    critic_input = observations_mb[:, a, :] if task_type == "POSIG" else global_states_mb
+                    critic_input = observations_mb[:, a, :] if per_agent else global_states_mb
                     values_pred = self.critic_shared(critic_input, agent_id).squeeze(-1)
 
                     critic_loss = PPOHelper.critic_loss_fn(
@@ -393,11 +393,11 @@ class IPPO_TrainerPS:
                     agent_id = F.one_hot(th.tensor(a), num_classes=n_agent).float()
                     agent_id = agent_id.unsqueeze(0).repeat(joint_actions_mb.size(0), 1).to(device)
 
-                    actor_input = observations_mb[:, a, :] if task_type == "POSIG" else global_states_mb
+                    actor_input = observations_mb[:, a, :] if per_agent else global_states_mb
                     logits = self.actor_shared(actor_input, agent_id)
 
                     if p.action_masking:
-                        queue = actor_input[:, -1] if task_type == "POSIG" else queues_mb[:, a]
+                        queue = actor_input[:, self.env.own_queue_index(a)] if per_agent else queues_mb[:, a]
                         done_mask = (queue <= 0)
                         if done_mask.any():
                             logits = logits.clone()

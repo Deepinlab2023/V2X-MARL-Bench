@@ -24,6 +24,7 @@ python main.py --env <ENV> --algo <ALGO> [--loc <LOC>] [--seed <SEED>]
 - `--algo`: `idql`, `hys`, `vdn`, `qmix`, `ia2c`, `maa2c`, `ippo`, `mappo`
 - `--loc`: Location index `0`–`8` (integer only), only used for NFIG and SIG single-location runs
 - `--seed`: Optional integer seed for reproducible experiments (seeds NumPy, Python random, and PyTorch)
+- `--state_order`: `global` (default, original state), `agent_first` (SIG: each agent gets the global state reordered with its own components first; QMIX mixer and MAA2C/MAPPO critics keep the original global state), `agent_first_masked` (POSIG: the `agent_first` state with the non-observed components set to 0). Logic in `Environ._agent_first_index()`
 
 ```bash
 python main.py --env NFIG --algo idql --loc 0           # Single-step, value-based
@@ -34,8 +35,8 @@ python main.py --env SIG --algo mappo --seed 42         # Reproducible run
 ```
 
 Results are saved as CSV files in `Results/<algo_name>/` (auto-created). Filename format:
-`{algo}_{task}_{n_agent}ag_{n_sc}sc_{ff_tag}[_{features}][_seed{s}]_trial{n}_{timestamp}.csv`
-e.g. `IA2C_NFIG_loc3_4ag_4sc_NFF_MASK_NORM_seed42_trial0_20260326_153416.csv` (`seed{s}` only when `--seed` is given; model checkpoints reuse the same name with `.pt`)
+`{algo}_{task}_{n_agent}ag_{n_sc}sc_{ff_tag}[_{AF|AFM}][_{features}][_seed{s}]_trial{n}_{timestamp}.csv`
+e.g. `IA2C_NFIG_loc3_4ag_4sc_NFF_MASK_NORM_seed42_trial0_20260326_153416.csv` (`AF`/`AFM` only for `--state_order agent_first`/`agent_first_masked`; `seed{s}` only when `--seed` is given; model checkpoints reuse the same name with `.pt`)
 
 The naming logic lives in `build_csv_name()` in `Environment/environment_utility.py`.
 

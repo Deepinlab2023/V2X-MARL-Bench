@@ -49,6 +49,7 @@ class PPOHelper:
             ts=ts,
             loc=params.loc,
             seed=getattr(params.env_params, "seed", None),
+            state_order=params.env.state_order,
         )
 
         out_dir = os.path.join("Results", algo_name)
@@ -424,8 +425,8 @@ class PPOBatchProcessing:
     Unified batch collation for MAPPO and IPPO.
 
     For MAPPO:
-      - FO: buffer items are (global_state_hist, joint_action_hist, log_prob_hist, value_hist, returns, advantages)
-      - POSIG non-FP: (global_state_hist, observation_hist, joint_action_hist, log_prob_hist, value_hist, returns, advantages)
+      - shared state: buffer items are (global_state_hist, joint_action_hist, log_prob_hist, value_hist, returns, advantages)
+      - per-agent states, non-FP (POSIG / SIG agent_first): (global_state_hist, observation_hist, joint_action_hist, log_prob_hist, value_hist, returns, advantages)
       - POSIG FP: (global_state_hist(fp_states), observation_hist, joint_action_hist, log_prob_hist, value_hist(per-agent), returns, advantages(per-agent))
 
     For IPPO:
@@ -433,8 +434,9 @@ class PPOBatchProcessing:
         where states_hist is obs_history for POSIG, otherwise global_state_history.
     """
 
-    def collate_mappo_batch(self, buffer, task_type, feature_pruning=False):
-        if task_type == "POSIG":
+    def collate_mappo_batch(self, buffer, per_agent, feature_pruning=False):
+        """per_agent: items hold one actor state per agent (observation_hist); feature_pruning: POSIG FP critic."""
+        if per_agent:
             batch_observations = []
         batch_global_states = []
         batch_joint_actions = []
@@ -444,7 +446,7 @@ class PPOBatchProcessing:
         batch_advantages = []
 
         for data in buffer:
-            if task_type == "POSIG":
+            if per_agent:
                 global_state, observations, joint_action, log_probs, values, rtrn, advantages = data
                 observations_tensor = th.stack(observations).detach()
                 batch_observations.append(observations_tensor)
@@ -476,7 +478,7 @@ class PPOBatchProcessing:
         batch_returns = th.cat(batch_returns, dim=0)
         batch_advantages = th.cat(batch_advantages, dim=0)
 
-        if task_type == "POSIG":
+        if per_agent:
             batch_observations = th.cat(batch_observations, dim=0)
             return (
                 batch_global_states,

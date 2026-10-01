@@ -110,6 +110,11 @@ def main():
     parser.add_argument('--exclude_heldout', action=argparse.BooleanOptionalAction, default=True,
                         help='Remove the held-out UNSEEN-100 topologies of the agent count from the default '
                              'SIG ML / POSIG training data. Use --no-exclude_heldout to train on all of it.')
+    parser.add_argument('--state_order', type=str, default='global',
+                        choices=['global', 'agent_first', 'agent_first_masked'],
+                        help='global: original state. agent_first (SIG): each agent gets the global state '
+                             'reordered with its own components first. agent_first_masked (POSIG): the '
+                             'agent_first state with the components not observed in POSIG set to 0.')
     args = parser.parse_args()
 
     if args.seed is not None:
@@ -151,6 +156,7 @@ def main():
             env_params.train_data, n_excluded = exclude_topologies(
                 env_params.train_data, load_veh_pos(heldout_path))
         env_params.eval_set_paths = args.eval_sets
+        env_params.state_order = args.state_order
         env = Environ(env_params)
 
         # NOTE: renamed per your new convention (veh_data -> train_data)
@@ -231,6 +237,7 @@ def main():
             print(f"Eval Sets:      {', '.join(args.eval_sets)}")
         print(f"Steps/Episode:  {env_params.n_step_per_episode}")
         print(f"Fast Fading:    {env_params.fast_fading_tag}")
+        print(f"State Order:    {env.state_order}")
         print(f"State Dim:      {env.state_dim}")
         print("="*60 + "\n")
 

@@ -145,10 +145,12 @@ Environment settings (agent count, subchannels, power levels, fast fading on/off
 Results are written to `Results/<ALGO>/` as CSV, one file per trial:
 
 ```
-{algo}_{task}_{n_agent}ag_{n_sc}sc_{FF|NFF}[_{features}][_seed{s}]_trial{n}_{timestamp}.csv
+{algo}_{task}_{n_agent}ag_{n_sc}sc_{FF|NFF}[_{AF|AFM}][_{features}][_seed{s}]_trial{n}_{timestamp}.csv
 ```
 
-For example, `IA2C_NFIG_loc3_4ag_4sc_NFF_MASK_NORM_seed42_trial0_20260326_153416.csv`. Model checkpoints use the same name with a `.pt` extension.
+For example, `IA2C_NFIG_loc3_4ag_4sc_NFF_MASK_NORM_seed42_trial0_20260326_153416.csv`. `AF` / `AFM` mark runs with
+`--state_order agent_first` (SIG: each agent's state is the global state reordered with its own components first) /
+`agent_first_masked` (POSIG: that state with the components the agent does not observe set to 0). Model checkpoints use the same name with a `.pt` extension.
 
 **Compute.** The environment is simulated on the CPU and dominates run time, so a GPU gives little speed-up. To run many experiments, launch independent processes (one per core) and set `OMP_NUM_THREADS=1`.
 

@@ -30,12 +30,8 @@ class IDQLtester:
             env.new_random_game()
 
             for t in range(params.n_step_per_episode):
-                # --- Get states (POSIG uses per-agent observation) ---
-                ag_state_list = []
-                for ag_idx in range(len(agent_list)):
-                    # ag_state = env.get_state([ag_idx, 0], 0, t)
-                    ag_state = env.get_state(ag_idx, t)
-                    ag_state_list.append(ag_state)
+                # --- Get states (one per agent) ---
+                ag_state_list = env.get_agent_state_list(t)
 
                 joint_action = []
                 RRA_all_agents = np.zeros([len(agent_list), 1, 2], dtype="int32")

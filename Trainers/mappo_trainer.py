@@ -36,6 +36,11 @@ class MAPPO_TrainerPS:
         self.n_sc = params.n_sc
         self.ff_on = getattr(params, "fast_fading_enabled", getattr(self.env, "fast_fading_enabled", False))
         self.feature_pruning = getattr(params, "feature_pruning", False)
+        # True: each agent has its own actor state (POSIG observation / agent_first state);
+        # the centralized critic always gets the SIG global state in its original order
+        self.per_agent = self.env.per_agent_state
+        # Feature-pruned agent-specific critic state (POSIG only)
+        self.fp = self.task_type == "POSIG" and self.feature_pruning
 
         self.csv_file, self.csv_writer = PPOHelper.init_csv_logging(params, algo_name="MAPPO")
         self.eval_sets = EvalSets(getattr(params.env_params, "eval_set_paths", None),
@@ -165,22 +170,19 @@ class MAPPO_TrainerPS:
     #   EPISODE COLLECTION
     # ==========================
     def _get_global_state(self, t: int):
-        env = self.env
-        if self.task_type == "POSIG":
-            global_state_np = env.get_global_state(t)
-        else:
-            global_state_np = env.get_state(0, t)
+        """Shared state of NFIG / SIG with the global state order (one state for all agents)."""
+        global_state_np = self.env.get_state(0, t)
         return th.tensor(global_state_np, dtype=th.float32).squeeze().to(device)
 
     def _collect_single_episode(self):
         p = self.params
         env = self.env
-        task_type = self.task_type
+        per_agent = self.per_agent
+        fp = self.fp
         n_agent = self.n_agent
         n_sc = self.n_sc
-        feature_pruning = self.feature_pruning
 
-        if task_type == "POSIG":
+        if per_agent:
             observation_history = []
         global_state_history = []
         global_reward_history = []
@@ -200,27 +202,28 @@ class MAPPO_TrainerPS:
 
             rra = np.zeros((n_agent, 1, 2), dtype=np.int32)
 
-            if task_type == "POSIG":
-                observations = []
-                if feature_pruning:
+            if per_agent:
+                agent_states_np, global_state_np = env.get_states(t)
+                observations = list(th.tensor(agent_states_np, dtype=th.float32).to(device))
+                global_state = th.tensor(global_state_np, dtype=th.float32).squeeze().to(device)
+                if fp:
                     fp_states = []
                     values = []
-
-            global_state = self._get_global_state(t)
+            else:
+                global_state = self._get_global_state(t)
 
             for a in range(n_agent):
                 with th.no_grad():
                     agent_id = F.one_hot(th.tensor(a), num_classes=n_agent).float().to(device)
 
-                    if task_type == "POSIG":
-                        obs_np = env.get_state(a, t)
-                        obs = th.tensor(obs_np, dtype=th.float32).squeeze().to(device)
-                        observations.append(obs)
+                    if per_agent:
+                        obs = observations[a]
 
-                        if feature_pruning:
+                        if fp:
+                            # true POSIG observation (without the agent_first_masked zero padding)
                             fp_state = PPOHelper.create_fp_state(
                                 global_state,
-                                obs,
+                                obs[:env.local_obs_dim],
                                 a,
                                 agent_id,
                                 int(env.n_step_per_episode),
@@ -247,7 +250,7 @@ class MAPPO_TrainerPS:
                     rra[a, 0, 0] = sc
                     rra[a, 0, 1] = pw
 
-                    if task_type == "POSIG" and feature_pruning:
+                    if fp:
                         v = self.centralized_critic(fp_state)
                         if p.popart:
                             # PopArt head is normalized; GAE needs raw-scale values to match raw rewards
@@ -255,7 +258,7 @@ class MAPPO_TrainerPS:
                         values.append(v.squeeze().detach())
 
             with th.no_grad():
-                if not (task_type == "POSIG" and feature_pruning):
+                if not fp:
                     value = self.centralized_critic(global_state).squeeze(-1).detach()
                     if p.popart:
                         value = self.value_normalizer.denormalize(value)
@@ -265,7 +268,7 @@ class MAPPO_TrainerPS:
 
             global_reward, done = env.step(rra, t)
 
-            if task_type == "POSIG" and feature_pruning:
+            if fp:
                 observations_stacked = th.stack(observations, dim=0).detach()
                 values_stacked = th.stack(values, dim=0).detach()
                 fp_states_stacked = th.stack(fp_states, dim=0).detach()
@@ -274,7 +277,7 @@ class MAPPO_TrainerPS:
                 global_state_history.append(fp_states_stacked)
                 value_history.append(values_stacked)
 
-            elif task_type == "POSIG" and not feature_pruning:
+            elif per_agent:
                 observations_stacked = th.stack(observations, dim=0).detach()
 
                 observation_history.append(observations_stacked)
@@ -293,7 +296,7 @@ class MAPPO_TrainerPS:
             if done:
                 break
 
-        if task_type == "POSIG" and feature_pruning:
+        if fp:
             returns, advantages = PPOHelper.compute_gae_agent_specific(
                 global_reward_history, value_history, done_history, p.gamma, p.lam
             )
@@ -311,7 +314,7 @@ class MAPPO_TrainerPS:
             global_reward_history, value_history, done_history, p.gamma, p.lam
         )
 
-        if task_type == "POSIG":
+        if per_agent:
             return (
                 global_state_history,
                 observation_history,
@@ -336,7 +339,7 @@ class MAPPO_TrainerPS:
     # ==========================
     def _collate_batch(self, buffer):
         batch_processing = PPOBatchProcessing()
-        return batch_processing.collate_mappo_batch(buffer, self.task_type, self.feature_pruning)
+        return batch_processing.collate_mappo_batch(buffer, self.per_agent, self.fp)
 
     # ==========================
     #   RETURNS NORMALIZATION
@@ -344,7 +347,7 @@ class MAPPO_TrainerPS:
     def _normalize_returns(self, batch):
         p = self.params
 
-        if self.task_type == "POSIG":
+        if self.per_agent:
             (
                 batch_global_states,
                 batch_observations,
@@ -366,7 +369,7 @@ class MAPPO_TrainerPS:
 
         batch_returns = PPOHelper.normalize_returns(batch_returns, p.popart, self.value_normalizer)
 
-        if self.task_type == "POSIG":
+        if self.per_agent:
             return (
                 batch_global_states,
                 batch_observations,
@@ -390,16 +393,13 @@ class MAPPO_TrainerPS:
     #   PPO UPDATES
     # ==========================
     def _make_dataset(self, batch):
-        if self.task_type == "POSIG":
-            return th.utils.data.TensorDataset(*batch)
-
         return th.utils.data.TensorDataset(*batch)
 
     def _ppo_update_epochs(self, batch):
         p = self.params
-        task_type = self.task_type
+        per_agent = self.per_agent
+        fp = self.fp
         n_agent = self.n_agent
-        feature_pruning = self.feature_pruning
 
         dataset = self._make_dataset(batch)
         mini_batch_size = max(1, len(dataset) // p.num_mini_batches)
@@ -415,7 +415,7 @@ class MAPPO_TrainerPS:
                 break
             for mb in dataloader:
 
-                if task_type == "POSIG":
+                if per_agent:
                     (
                         global_states_mb,
                         observations_mb,
@@ -443,18 +443,18 @@ class MAPPO_TrainerPS:
                 returns_mb = returns_mb.to(device)
                 advantages_mb = advantages_mb.to(device)
 
-                if not (task_type == "POSIG" and feature_pruning):
+                if not fp:
                     adv_mean = advantages_mb.mean()
                     adv_std = advantages_mb.std(unbiased=False)
                     advantages_normalized = (advantages_mb - adv_mean) / adv_std.clamp_min(1e-8)
 
-                if task_type != "POSIG":
+                if not per_agent:
                     queues_mb = global_states_mb[:, -n_agent:]
 
                 # ---- Critic update ----
                 self.critic_optimizer.zero_grad()
 
-                if task_type == "POSIG" and feature_pruning:
+                if fp:
                     total_critic_loss = 0.0
                     for a in range(n_agent):
                         values_pred = self.centralized_critic(global_states_mb[:, a, :]).squeeze(-1)
@@ -494,11 +494,11 @@ class MAPPO_TrainerPS:
                     agent_id = F.one_hot(th.tensor(a), num_classes=n_agent).float()
                     agent_id = agent_id.unsqueeze(0).repeat(joint_actions_mb.size(0), 1).to(device)
 
-                    actor_input = observations_mb[:, a, :] if task_type == "POSIG" else global_states_mb
+                    actor_input = observations_mb[:, a, :] if per_agent else global_states_mb
                     logits = self.actor_shared(actor_input, agent_id)
 
                     if p.action_masking:
-                        queue = actor_input[:, -1] if task_type == "POSIG" else queues_mb[:, a]
+                        queue = actor_input[:, self.env.own_queue_index(a)] if per_agent else queues_mb[:, a]
                         done_mask = (queue <= 0)
                         if done_mask.any():
                             logits = logits.clone()
@@ -509,7 +509,7 @@ class MAPPO_TrainerPS:
                     old_log_prob = log_probs_mb[:, a]
                     new_log_prob = dist.log_prob(action)
 
-                    if task_type == "POSIG" and feature_pruning:
+                    if fp:
                         adv_agent = advantages_mb[:, a]
                         adv_mean = adv_agent.mean()
                         adv_std = adv_agent.std(unbiased=False)

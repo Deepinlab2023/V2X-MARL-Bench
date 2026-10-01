@@ -149,6 +149,8 @@ class V2XParams:
 
         # State encoding
         self.timestep_encoding_type = TIMESTEP_ENCODING_TYPE
+        # "global" | "agent_first" (SIG) | "agent_first_masked" (POSIG); see Environ.__init__ (set by main.py --state_order)
+        self.state_order = "global"
 
         # =====================================================================
         # Task-Specific Configuration

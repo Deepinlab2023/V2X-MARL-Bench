@@ -138,8 +138,9 @@ class IA2CTrainer:
                 actions = []
                 RRA_all_agents = np.zeros([p.n_agent, 1, 2], dtype="int32")
 
-                if p.task_type == "POSIG":
-                    observations = []
+                if p.env.per_agent_state:
+                    # one state per agent (POSIG observation / agent_first state)
+                    observations = list(th.tensor(p.env.get_agent_states(t), dtype=th.float32, device=device))
                     global_state = None
                 else:
                     global_state = p.env.get_state(0, t)
@@ -147,15 +148,11 @@ class IA2CTrainer:
                     observations = None
 
                 for a in range(p.n_agent):
+                    agent_state = observations[a] if observations is not None else global_state
                     if not p.no_sharing:
-                        action = self._select_action_ps(
-                            a=a,
-                            global_state=global_state,
-                            observations=observations,
-                            t=t,
-                        )
+                        action = self._select_action_ps(a, agent_state)
                     else:
-                        action = self._select_action_ns(a, global_state)
+                        action = self._select_action_ns(a, agent_state)
 
                     actions.append(action.item())
                     sc_idx, power_idx = p.env.map_action_to_rra(action, agent_idx=a)
@@ -168,7 +165,7 @@ class IA2CTrainer:
                 # Extract scalar reward
                 global_reward = global_reward[0, 0]
 
-                if p.task_type == "POSIG":
+                if p.env.per_agent_state:
                     buffer.append((observations, joint_action, global_reward))
                 else:
                     buffer.append((global_state, joint_action, global_reward))
@@ -178,22 +175,14 @@ class IA2CTrainer:
         rtrns = A2CHelper.compute_returns_from_buffer(buffer, done, p.gamma)
         return buffer, rtrns, total_rewards
 
-    def _select_action_ps(self, a, global_state, observations, t):
+    def _select_action_ps(self, a, agent_state):
         p = self.params
         actor_shared = self.actor_shared
 
         agent_id = F.one_hot(th.tensor(a, device=device), num_classes=p.n_agent).float()
 
-        if p.task_type == "POSIG":
-            observation = p.env.get_state(a, t)
-            observation = th.tensor(observation, dtype=th.float32, device=device).squeeze()
-            observations.append(observation)
-
-            actor_input = th.cat([observation, agent_id], dim=-1)
-            logits = actor_shared(actor_input)
-        else:
-            actor_input = th.cat([global_state, agent_id], dim=-1)
-            logits = actor_shared(actor_input)
+        actor_input = th.cat([agent_state, agent_id], dim=-1)
+        logits = actor_shared(actor_input)
 
         if p.action_masking:
             queue_a = p.env.queue.flatten()[a]
@@ -203,10 +192,10 @@ class IA2CTrainer:
 
         return action
 
-    def _select_action_ns(self, a, global_state):
+    def _select_action_ns(self, a, agent_state):
         p = self.params
         actor = self.actors[a]
-        logits = actor(global_state)
+        logits = actor(agent_state)
 
         if p.action_masking:
             queue_a = p.env.queue.flatten()[a]
@@ -254,14 +243,19 @@ class IA2CTrainer:
         p = self.params
         B = batch_joint_actions.size(0)
 
-        if p.task_type != "POSIG":
+        if has_obs:
+            # agent a's input and own queue: column own_queue_index of its state
+            agent_states = [batch_observations[:, a, :].to(device) for a in range(p.n_agent)]
+            queues = th.stack([agent_states[a][:, p.env.own_queue_index(a)] for a in range(p.n_agent)], dim=1)
+        else:
+            agent_states = [batch_global_state] * p.n_agent
             queues = batch_global_state[:, -p.n_agent:]
 
         # ----- critic update -----
         if p.no_sharing:
             for a in range(p.n_agent):
                 self.opt_critics[a].zero_grad()
-                V_a = self.critics[a](batch_global_state).squeeze(-1)
+                V_a = self.critics[a](agent_states[a]).squeeze(-1)
                 loss = (batch_rtrns - V_a).pow(2).mean()
                 loss.backward()
                 self.opt_critics[a].step()
@@ -270,10 +264,7 @@ class IA2CTrainer:
             total_loss = 0.0
 
             for a in range(p.n_agent):
-                if has_obs and p.task_type == "POSIG":
-                    agent_base = batch_observations[:, a, :].to(device)
-                else:
-                    agent_base = batch_global_state.to(device)
+                agent_base = agent_states[a].to(device)
 
                 agent_id = F.one_hot(th.tensor(a, device=device), num_classes=p.n_agent).float()
                 agent_id = agent_id.unsqueeze(0).repeat(B, 1)
@@ -294,13 +285,13 @@ class IA2CTrainer:
                 critic = self.critics[a]
 
                 with th.no_grad():
-                    V_agent = critic(batch_global_state).squeeze(-1)
+                    V_agent = critic(agent_states[a]).squeeze(-1)
                 advantages = (batch_rtrns - V_agent).detach()
 
                 if p.adv_normalization:
                     advantages = (advantages - advantages.mean()) / advantages.std(unbiased=False).clamp_min(1e-8)
 
-                logits = actor(batch_global_state.to(device))
+                logits = actor(agent_states[a].to(device))
 
                 if p.action_masking:
                     done_mask = (queues[:, a] <= 0)
@@ -322,13 +313,8 @@ class IA2CTrainer:
             total_actor_loss = 0.0
 
             for a in range(p.n_agent):
-                if has_obs and p.task_type == "POSIG":
-                    agent_base = batch_observations[:, a, :].to(device)
-                    queue = agent_base[:, -1]
-                else:
-                    agent_base = batch_global_state.to(device)
-                    if p.task_type != "POSIG":
-                        queue = queues[:, a]
+                agent_base = agent_states[a].to(device)
+                queue = queues[:, a]
 
                 agent_id = F.one_hot(th.tensor(a, device=device), num_classes=p.n_agent).float()
                 agent_id = agent_id.unsqueeze(0).repeat(B, 1)
