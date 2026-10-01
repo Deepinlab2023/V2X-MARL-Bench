@@ -637,6 +637,21 @@ class Environ:
         state = state.reshape((1, -1))
         return state
 
+    def sig_state_layout(self):
+        """(start, end) offsets of the blocks of the SIG state, in _get_state_SIG order, plus sizes."""
+        A, M = self.n_agent, self.n_sc
+        sc_mult = M if self.fast_fading_enabled else 1
+        t_dim = 1 if self.timestep_encoding_type == 'normalized' else self.n_step_per_episode
+        sizes = [("t", t_dim), ("g_i", A * sc_mult), ("g_ji", A * (A - 1) * sc_mult), ("g_m", M),
+                 ("g_bi", A * M), ("g_ib", A * sc_mult), ("i_prev", A * M), ("queue", A)]
+        layout, start = {}, 0
+        for name, size in sizes:
+            layout[name] = (start, start + size)
+            start += size
+        assert start == self.global_state_dim
+        layout.update(n_agent=A, n_sc=M, sc_mult=sc_mult)
+        return layout
+
     def _sig_state_indices(self):
         """Tx / Rx vehicle index per agent and the (i, j != i) interferer pairs, cached."""
         if getattr(self, '_sig_idx_cache', None) is None:

@@ -15,6 +15,10 @@ class IDQLparameters:
 
         # Network
         self.hidden_dim = 128
+        # "fc": MLP on the flat state; "gnn": graph network on the SIG global state (SIG only)
+        self.network = "fc"
+        self.gnn_message_dim = 64
+        self.gnn_hidden_dim = 64
 
         # Replay buffer
         self.memory_capacity = 10000

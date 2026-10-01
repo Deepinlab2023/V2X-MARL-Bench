@@ -51,6 +51,15 @@ class IDQLtrainerNS:
         else:
             input_dim = env.state_dim
 
+        # GNN reads the SIG global state as a graph, so it needs the SIG state layout
+        if algo_params.network not in ("fc", "gnn"):
+            raise ValueError(f"Unknown network '{algo_params.network}' (use 'fc' or 'gnn').")
+        state_layout = None
+        if algo_params.network == "gnn":
+            if env_name != "SIG":
+                raise ValueError("network='gnn' needs the SIG global state (SIG ML / SIG SL).")
+            state_layout = env.sig_state_layout()
+
         # --- Agents ---
         agent_list = []
         for veh_idx in range(env.n_agent):
@@ -70,6 +79,10 @@ class IDQLtrainerNS:
                     hysteretic_high_lr=algo_params.hysteretic_high_lr,
                     hysteretic_low_lr=algo_params.hysteretic_low_lr,
                     force_nt_when_empty=algo_params.force_nt_when_empty,
+                    network=algo_params.network,
+                    state_layout=state_layout,
+                    gnn_message_dim=algo_params.gnn_message_dim,
+                    gnn_hidden_dim=algo_params.gnn_hidden_dim,
                 )
             )
 
@@ -97,6 +110,7 @@ class IDQLtrainerNS:
             trial_run=trial_run,
             ts=ts,
             loc=env_params.loc,
+            features="GNN" if algo_params.network == "gnn" else None,
             seed=getattr(env_params, "seed", None),
         )
         out_dir = os.path.join("Results", algo_name)
