@@ -1,0 +1,434 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="2400" height="771.73" preserveAspectRatio="xMinYMin meet" viewBox="0 0 2400 771" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>...</title>
+	<desc>...</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="2400" height="771.73"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-771)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="0" y="0.0" width="2400" height="771.73" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="80" y="724.73" style="font-family: Arial-Bold; font-size: 34px;fill: rgb(12%,19%,25%); stroke:none;" transform="translate(0,1449) scale(1,-1)">16-agent V2X topologies  /  Mid-distance group</text>
+			<text x="80" y="692.73" style="font-family: Arial; font-size: 21px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,1385) scale(1,-1)">16 V2V pairs + 4 V2I users per snapshot   |   Same scale in all 3 panels   |   Full 2 km road</text>
+			<circle cx="90" cy="662.73" r="6" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.6; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<text x="106" y="655.73" style="font-family: Arial; font-size: 20px;fill: rgb(12%,19%,25%); stroke:none;" transform="translate(0,1311) scale(1,-1)">V2V Tx</text>
+			<circle cx="270" cy="662.73" r="6" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.6; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="286" y="655.73" style="font-family: Arial; font-size: 20px;fill: rgb(12%,19%,25%); stroke:none;" transform="translate(0,1311) scale(1,-1)">V2V Rx</text>
+			<polygon points="450 670.05, 457.32 662.73, 450 655.41, 442.68 662.73" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.8; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<text x="466" y="655.73" style="font-family: Arial; font-size: 20px;fill: rgb(12%,19%,25%); stroke:none;" transform="translate(0,1311) scale(1,-1)">V2I user</text>
+			<path d="M 656,662.73 L 706,662.73 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 2;"/>
+			<polygon points="706 662.73, 700 665.61, 700 659.85" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<text x="720" y="655.73" style="font-family: Arial; font-size: 20px;fill: rgb(12%,19%,25%); stroke:none;" transform="translate(0,1311) scale(1,-1)">V2V link</text>
+			<path d="M 920,662.73 L 970,662.73 Z" style="stroke: rgb(70%,47%,9%); stroke-linecap: round; stroke-width: 1.5; stroke-dasharray: 6, 5;"/>
+			<polygon points="970 662.73, 964 665.61, 964 659.85" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<text x="986" y="655.73" style="font-family: Arial; font-size: 20px;fill: rgb(12%,19%,25%); stroke:none;" transform="translate(0,1311) scale(1,-1)">Uplink to BS</text>
+			<polygon points="1230 669.73, 1237 657.13, 1223 657.13" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(12%,19%,25%); fill-rule: evenodd;"/>
+			<text x="1247" y="655.73" style="font-family: Arial; font-size: 20px;fill: rgb(12%,19%,25%); stroke:none;" transform="translate(0,1311) scale(1,-1)">BS</text>
+			<text x="110" y="620.73" style="font-family: Arial-Bold; font-size: 25px;fill: rgb(12%,19%,25%); stroke:none;" transform="translate(0,1241) scale(1,-1)">(a)  Low density  /  35 veh/km</text>
+			<text x="2087.98828125" y="620.73" style="font-family: Arial; font-size: 20px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,1241) scale(1,-1)">ETSI #1   |   snapshot 6271</text>
+			<rect x="110" y="556.77" width="2220" height="13.32000000000005" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,95%,96%); fill-rule: evenodd;"/>
+			<path d="M 110,556.77 L 2330,556.77 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.8;"/>
+			<path d="M 110,570.09 L 2330,570.09 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.8;"/>
+			<path d="M 110,561.21 L 2330,561.21 Z" style="stroke: rgb(71%,76%,80%); stroke-linecap: round; stroke-width: 0.55; stroke-dasharray: 7, 7;"/>
+			<path d="M 110,565.65 L 2330,565.65 Z" style="stroke: rgb(71%,76%,80%); stroke-linecap: round; stroke-width: 0.55; stroke-dasharray: 7, 7;"/>
+			<rect x="110" y="576.75" width="2220" height="13.32000000000005" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,95%,96%); fill-rule: evenodd;"/>
+			<path d="M 110,576.75 L 2330,576.75 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.8;"/>
+			<path d="M 110,590.07 L 2330,590.07 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.8;"/>
+			<path d="M 110,581.19 L 2330,581.19 Z" style="stroke: rgb(71%,76%,80%); stroke-linecap: round; stroke-width: 0.55; stroke-dasharray: 7, 7;"/>
+			<path d="M 110,585.63 L 2330,585.63 Z" style="stroke: rgb(71%,76%,80%); stroke-linecap: round; stroke-width: 0.55; stroke-dasharray: 7, 7;"/>
+			<path d="M 415.27158,578.717625 L 1216.65952,518.172375 Z" style="stroke: rgb(70%,47%,9%); stroke-linecap: round; stroke-width: 1.1; stroke-dasharray: 7, 6;"/>
+			<polygon points="1216.66 518.1724, 1212.335 520.6652, 1212.01 516.3575" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<path d="M 1175.087127,585.065491 L 1218.137473,520.704509 Z" style="stroke: rgb(70%,47%,9%); stroke-linecap: round; stroke-width: 1.1; stroke-dasharray: 7, 6;"/>
+			<polygon points="1218.137 520.7045, 1217.431 525.6458, 1213.84 523.244" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<path d="M 272.916436,563.269774 L 1216.653834,518.080226 Z" style="stroke: rgb(70%,47%,9%); stroke-linecap: round; stroke-width: 1.1; stroke-dasharray: 7, 6;"/>
+			<polygon points="1216.654 518.0802, 1212.262 520.453, 1212.056 516.1379" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<path d="M 1505.998875,562.909425 L 1223.309305,518.440575 Z" style="stroke: rgb(70%,47%,9%); stroke-linecap: round; stroke-width: 1.1; stroke-dasharray: 7, 6;"/>
+			<polygon points="1223.309 518.4406, 1228.09 517.0061, 1227.419 521.2736" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<path d="M 179.574227,583.602817 L 122.531363,587.101073 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 179.574227,583.602817 L 122.531363,587.101073 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="122.5314 587.1011, 125.6313 585.3721, 125.8194 588.4383" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 200.263136,587.668836 L 271.046414,583.591164 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 200.263136,587.668836 L 271.046414,583.591164 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="271.0464 583.5912, 267.94 585.3087, 267.7634 582.2417" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 278.85968,587.85 L 383.58854,587.85 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 278.85968,587.85 L 383.58854,587.85 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="383.5885 587.85, 380.3885 589.386, 380.3885 586.314" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 792.0419,587.85 L 581.15486,587.85 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 792.0419,587.85 L 581.15486,587.85 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="581.1549 587.85, 584.3549 586.314, 584.3549 589.386" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1047.87692,587.85 L 923.06927,587.85 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1047.87692,587.85 L 923.06927,587.85 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="923.0693 587.85, 926.2693 586.314, 926.2693 589.386" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1279.189951,579.091682 L 1170.632439,583.288318 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1279.189951,579.091682 L 1170.632439,583.288318 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1170.632 583.2883, 1173.771 581.6299, 1173.889 584.6996" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1290.955746,586.705519 L 1285.439944,584.554481 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1290.955746,586.705519 L 1285.439944,584.554481 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1285.44 584.5545, 1288.19 584.3459, 1287.323 586.5699" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1411.711156,586.500556 L 1408.038714,584.759444 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1411.711156,586.500556 L 1408.038714,584.759444 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1408.039 584.7594, 1410.257 584.7488, 1409.435 586.4837" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 119.731441,572.159235 L 174.517569,559.689105 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 119.731441,572.159235 L 174.517569,559.689105 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="174.5176 559.6891, 171.7383 561.897, 171.0565 558.9016" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 345.262594,567.781487 L 193.611546,563.518513 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 345.262594,567.781487 L 193.611546,563.518513 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="193.6115 563.5185, 196.8534 562.073, 196.7671 565.1438" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 546.721744,563.352892 L 371.691366,559.067108 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 546.721744,563.352892 L 371.691366,559.067108 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="371.6914 559.0671, 374.928 557.6099, 374.8528 560.681" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 591.10157,558.99 L 781.86653,558.99 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 591.10157,558.99 L 781.86653,558.99 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="781.8665 558.99, 778.6665 560.526, 778.6665 557.454" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 939.10544,558.99 L 1212.16247,558.99 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 939.10544,558.99 L 1212.16247,558.99 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1212.162 558.99, 1208.962 560.526, 1208.962 557.454" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1238.090172,567.658808 L 1297.879318,563.641192 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1238.090172,567.658808 L 1297.879318,563.641192 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1297.879 563.6412, 1294.789 565.3883, 1294.584 562.3232" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1332.314972,559.537404 L 1376.432678,567.322596 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1332.314972,559.537404 L 1376.432678,567.322596 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1376.433 567.3226, 1373.014 568.2791, 1373.548 565.2539" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1405.572646,563.093133 L 1440.588564,559.326867 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1405.572646,563.093133 L 1440.588564,559.326867 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1440.589 559.3269, 1437.571 561.1963, 1437.243 558.1419" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="795.1919" cy="587.85" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="919.91927" cy="587.85" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="578.00486" cy="587.85" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1051.02692" cy="587.85" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<polygon points="411.9311 581.6725, 414.6336 578.97, 411.9311 576.2675, 409.2286 578.97" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.45; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<circle cx="386.73854" cy="587.85" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1167.48479" cy="583.4100000000001" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<polygon points="1173.225 590.5525, 1175.927 587.85, 1173.225 585.1475, 1170.522 587.85" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.45; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<circle cx="275.70968000000005" cy="587.85" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="274.1912" cy="583.4100000000001" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1282.3376000000003" cy="578.97" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="1282.50521" cy="583.4100000000001" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1293.89048" cy="587.85" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="197.11835000000002" cy="587.85" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="182.71831999999995" cy="583.4100000000001" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="1405.1924000000001" cy="583.4100000000001" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1414.5574700000002" cy="587.85" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="119.38727" cy="587.29389" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="785.0165300000001" cy="558.99" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="935.9554400000001" cy="558.99" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="587.95157" cy="558.99" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="549.8708" cy="563.4300000000001" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="368.5423100000001" cy="558.99" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="348.41134999999997" cy="567.87" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="1215.31247" cy="558.99" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1234.9472600000001" cy="567.87" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<polygon points="269.5703 566.1325, 272.2728 563.43, 269.5703 560.7275, 266.8678 563.43" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.45; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<circle cx="1301.02223" cy="563.4300000000001" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1329.2129000000002" cy="558.99" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="190.46279000000004" cy="563.4300000000001" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="177.58900999999997" cy="558.99" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1379.53475" cy="567.87" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1402.44071" cy="563.4300000000001" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="116.66" cy="572.85834" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="1443.7205000000001" cy="558.99" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<polygon points="1509.308 566.1325, 1512.011 563.43, 1509.308 560.7275, 1506.606 563.43" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.45; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<polygon points="1220 522.92, 1225 513.92, 1215 513.92" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(12%,19%,25%); fill-rule: evenodd;"/>
+			<text x="1233.0" y="510.92" style="font-family: Arial; font-size: 19px;fill: rgb(12%,19%,25%); stroke:none;" transform="translate(0,1021) scale(1,-1)">BS</text>
+			<path d="M 110,497.82 L 2330,497.82 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<path d="M 110,497.82 L 110,492.82 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="86.9814453125" y="470.82" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,941) scale(1,-1)">-1000</text>
+			<path d="M 332,497.82 L 332,492.82 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="313.98681640625" y="470.82" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,941) scale(1,-1)">-800</text>
+			<path d="M 554,497.82 L 554,492.82 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="535.98681640625" y="470.82" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,941) scale(1,-1)">-600</text>
+			<path d="M 776,497.82 L 776,492.82 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="757.9868164062501" y="470.82" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,941) scale(1,-1)">-400</text>
+			<path d="M 998,497.82 L 998,492.82 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="979.9868164062501" y="470.82" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,941) scale(1,-1)">-200</text>
+			<path d="M 1220,497.82 L 1220,492.82 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="1214.99462890625" y="470.82" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,941) scale(1,-1)">0</text>
+			<path d="M 1442,497.82 L 1442,492.82 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="1426.9838867187502" y="470.82" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,941) scale(1,-1)">200</text>
+			<path d="M 1664,497.82 L 1664,492.82 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="1648.9838867187502" y="470.82" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,941) scale(1,-1)">400</text>
+			<path d="M 1886,497.82 L 1886,492.82 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="1870.9838867187502" y="470.82" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,941) scale(1,-1)">600</text>
+			<path d="M 2108,497.82 L 2108,492.82 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="2092.98388671875" y="470.82" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,941) scale(1,-1)">800</text>
+			<path d="M 2330,497.82 L 2330,492.82 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="2309.978515625" y="470.82" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,941) scale(1,-1)">1000</text>
+			<text x="2286.73974609375" y="446.82" style="font-family: Arial; font-size: 19px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,893) scale(1,-1)">x (m)</text>
+			<path d="M 137.75,517.92 L 248.75,517.92 Z" style="stroke: rgb(12%,19%,25%); stroke-linecap: round; stroke-width: 2;"/>
+			<path d="M 137.75,521.92 L 137.75,513.92 Z" style="stroke: rgb(12%,19%,25%); stroke-linecap: round; stroke-width: 1.3;"/>
+			<path d="M 248.75,521.92 L 248.75,513.92 Z" style="stroke: rgb(12%,19%,25%); stroke-linecap: round; stroke-width: 1.3;"/>
+			<text x="168.236328125" y="528.9200000000001" style="font-family: Arial; font-size: 18px;fill: rgb(12%,19%,25%); stroke:none;" transform="translate(0,1057) scale(1,-1)">100 m</text>
+			<text x="110" y="405.82" style="font-family: Arial-Bold; font-size: 25px;fill: rgb(12%,19%,25%); stroke:none;" transform="translate(0,811) scale(1,-1)">(b)  Medium density  /  123 veh/km</text>
+			<text x="2076.865234375" y="405.82" style="font-family: Arial; font-size: 20px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,811) scale(1,-1)">ETSI #3   |   snapshot 25493</text>
+			<rect x="110" y="341.86" width="2220" height="13.319999999999993" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,95%,96%); fill-rule: evenodd;"/>
+			<path d="M 110,341.86 L 2330,341.86 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.8;"/>
+			<path d="M 110,355.18 L 2330,355.18 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.8;"/>
+			<path d="M 110,346.3 L 2330,346.3 Z" style="stroke: rgb(71%,76%,80%); stroke-linecap: round; stroke-width: 0.55; stroke-dasharray: 7, 7;"/>
+			<path d="M 110,350.74 L 2330,350.74 Z" style="stroke: rgb(71%,76%,80%); stroke-linecap: round; stroke-width: 0.55; stroke-dasharray: 7, 7;"/>
+			<rect x="110" y="361.84" width="2220" height="13.319999999999993" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,95%,96%); fill-rule: evenodd;"/>
+			<path d="M 110,361.84 L 2330,361.84 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.8;"/>
+			<path d="M 110,375.16 L 2330,375.16 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.8;"/>
+			<path d="M 110,366.28 L 2330,366.28 Z" style="stroke: rgb(71%,76%,80%); stroke-linecap: round; stroke-width: 0.55; stroke-dasharray: 7, 7;"/>
+			<path d="M 110,370.72 L 2330,370.72 Z" style="stroke: rgb(71%,76%,80%); stroke-linecap: round; stroke-width: 0.55; stroke-dasharray: 7, 7;"/>
+			<path d="M 1800.869403,368.126795 L 1223.329147,303.383205 Z" style="stroke: rgb(70%,47%,9%); stroke-linecap: round; stroke-width: 1.1; stroke-dasharray: 7, 6;"/>
+			<polygon points="1223.329 303.3832, 1228.042 301.738, 1227.561 306.0311" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<path d="M 1490.432551,372.110657 L 1223.245719,303.839343 Z" style="stroke: rgb(70%,47%,9%); stroke-linecap: round; stroke-width: 1.1; stroke-dasharray: 7, 6;"/>
+			<polygon points="1223.246 303.8393, 1228.14 302.8606, 1227.071 307.0461" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<path d="M 1674.782279,348.188835 L 1223.333591,303.341165 Z" style="stroke: rgb(70%,47%,9%); stroke-linecap: round; stroke-width: 1.1; stroke-dasharray: 7, 6;"/>
+			<polygon points="1223.334 303.3412, 1228.025 301.6366, 1227.598 305.9354" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<path d="M 1598.72231,343.721944 L 1223.33081,303.368056 Z" style="stroke: rgb(70%,47%,9%); stroke-linecap: round; stroke-width: 1.1; stroke-dasharray: 7, 6;"/>
+			<polygon points="1223.331 303.3681, 1228.036 301.7014, 1227.574 305.9967" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<path d="M 1502.593388,364.549516 L 1480.592882,368.010484 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1502.593388,364.549516 L 1480.592882,368.010484 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1480.593 368.0105, 1483.515 365.9959, 1483.993 369.0305" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1540.563293,371.644578 L 1554.503207,365.355422 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1540.563293,371.644578 L 1554.503207,365.355422 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1554.503 365.3554, 1552.218 368.0715, 1550.955 365.2713" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1618.47908,372.94 L 1582.80998,372.94 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1618.47908,372.94 L 1582.80998,372.94 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1582.81 372.94, 1586.01 371.404, 1586.01 374.476" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1665.988584,370.889838 L 1671.564076,366.110162 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1665.988584,370.889838 L 1671.564076,366.110162 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1671.564 366.1102, 1670.186 369.2416, 1668.259 366.9936" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1735.514029,371.970392 L 1743.243951,369.469608 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1735.514029,371.970392 L 1743.243951,369.469608 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1743.244 369.4696, 1740.672 371.916, 1739.727 368.9932" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1769.931132,366.732995 L 1772.134588,370.267005 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1769.931132,366.732995 L 1772.134588,370.267005 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1772.135 370.267, 1770.262 369.0778, 1771.891 368.0619" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1840.821581,369.049792 L 1821.976619,372.390208 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1840.821581,369.049792 L 1821.976619,372.390208 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1821.977 372.3902, 1824.859 370.3193, 1825.396 373.3441" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1880.2981,369.286973 L 1869.18999,372.153027 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1880.2981,369.286973 L 1869.18999,372.153027 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1869.19 372.153, 1871.905 369.8663, 1872.672 372.8409" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1528.977558,345.042348 L 1536.817132,347.557652 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1528.977558,345.042348 L 1536.817132,347.557652 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1536.817 347.5577, 1533.301 348.0426, 1534.239 345.1175" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1564.642253,347.222283 L 1564.824257,349.817717 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1564.642253,347.222283 L 1564.824257,349.817717 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1564.824 349.8177, 1563.727 347.8898, 1565.642 347.7555" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1581.980035,349.265854 L 1594.077615,352.214146 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1581.980035,349.265854 L 1594.077615,352.214146 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1594.078 352.2141, 1590.605 352.9488, 1591.332 349.9641" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1625.247479,351.631675 L 1621.412831,349.848325 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1625.247479,351.631675 L 1621.412831,349.848325 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1621.413 349.8483, 1623.631 349.8212, 1622.821 351.5622" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1642.839756,345.402255 L 1656.322444,351.637745 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1642.839756,345.402255 L 1656.322444,351.637745 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1656.322 351.6377, 1652.773 351.6886, 1654.063 348.9004" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1720.610161,348.175899 L 1686.470679,344.424101 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1720.610161,348.175899 L 1686.470679,344.424101 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1686.471 344.4241, 1689.819 343.2469, 1689.484 346.3005" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1782.985988,352.277446 L 1749.128582,344.762554 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1782.985988,352.277446 L 1749.128582,344.762554 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1749.129 344.7626, 1752.585 343.9564, 1751.92 346.9554" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 1802.060011,347.599154 L 1800.373059,345.000846 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 1802.060011,347.599154 L 1800.373059,345.000846 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="1800.373 345.0008, 1802.267 346.1555, 1800.657 347.2011" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="1663.59707" cy="372.94" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="1673.9555900000003" cy="364.06" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1621.6290800000002" cy="372.94" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="1732.51697" cy="372.94" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="1746.24101" cy="368.5" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1579.6599800000001" cy="372.94" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1768.2645200000002" cy="364.06" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="1557.37451" cy="364.06" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1773.8012000000003" cy="372.94" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1537.6919900000003" cy="372.94" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<polygon points="1804.199 371.2025, 1806.901 368.5, 1804.199 365.7975, 1801.496 368.5" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.45; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<circle cx="1818.8749700000003" cy="372.94" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1505.70512" cy="364.06" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<polygon points="1493.678 375.6425, 1496.381 372.94, 1493.678 370.2375, 1490.976 372.94" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.45; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<circle cx="1843.9232299999999" cy="368.5" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="1477.48115" cy="368.5" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1866.1398800000002" cy="372.94" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1883.34821" cy="368.5" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="1659.1814900000002" cy="352.96" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<polygon points="1678.116 351.2225, 1680.818 348.52, 1678.116 345.8175, 1675.413 348.52" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.45; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<circle cx="1683.3395300000002" cy="344.08" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1639.98071" cy="344.08" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="1628.10371" cy="352.96" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="1618.5566000000001" cy="348.52" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1723.74131" cy="348.52" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<polygon points="1602.053 346.7825, 1604.756 344.08, 1602.053 341.3775, 1599.351 344.08" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.45; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<circle cx="1597.1380400000003" cy="352.96" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1746.0534200000002" cy="344.08" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1578.9196100000001" cy="348.52" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="1565.0446100000001" cy="352.96" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1564.4219" cy="344.08" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="1786.06115" cy="352.96" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="1539.8165300000003" cy="348.52" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1799.7752000000003" cy="344.08" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="1525.9781600000001" cy="344.08" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="1802.65787" cy="348.52" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<polygon points="1220 308.01, 1225 299.01, 1215 299.01" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(12%,19%,25%); fill-rule: evenodd;"/>
+			<text x="1233.0" y="296.01" style="font-family: Arial; font-size: 19px;fill: rgb(12%,19%,25%); stroke:none;" transform="translate(0,592) scale(1,-1)">BS</text>
+			<path d="M 110,282.91 L 2330,282.91 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<path d="M 110,282.91 L 110,277.91 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="86.9814453125" y="255.90999999999997" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,511) scale(1,-1)">-1000</text>
+			<path d="M 332,282.91 L 332,277.91 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="313.98681640625" y="255.90999999999997" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,511) scale(1,-1)">-800</text>
+			<path d="M 554,282.91 L 554,277.91 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="535.98681640625" y="255.90999999999997" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,511) scale(1,-1)">-600</text>
+			<path d="M 776,282.91 L 776,277.91 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="757.9868164062501" y="255.90999999999997" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,511) scale(1,-1)">-400</text>
+			<path d="M 998,282.91 L 998,277.91 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="979.9868164062501" y="255.90999999999997" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,511) scale(1,-1)">-200</text>
+			<path d="M 1220,282.91 L 1220,277.91 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="1214.99462890625" y="255.90999999999997" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,511) scale(1,-1)">0</text>
+			<path d="M 1442,282.91 L 1442,277.91 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="1426.9838867187502" y="255.90999999999997" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,511) scale(1,-1)">200</text>
+			<path d="M 1664,282.91 L 1664,277.91 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="1648.9838867187502" y="255.90999999999997" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,511) scale(1,-1)">400</text>
+			<path d="M 1886,282.91 L 1886,277.91 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="1870.9838867187502" y="255.90999999999997" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,511) scale(1,-1)">600</text>
+			<path d="M 2108,282.91 L 2108,277.91 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="2092.98388671875" y="255.90999999999997" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,511) scale(1,-1)">800</text>
+			<path d="M 2330,282.91 L 2330,277.91 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="2309.978515625" y="255.90999999999997" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,511) scale(1,-1)">1000</text>
+			<text x="2286.73974609375" y="231.90999999999997" style="font-family: Arial; font-size: 19px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,463) scale(1,-1)">x (m)</text>
+			<path d="M 137.75,303.01 L 248.75,303.01 Z" style="stroke: rgb(12%,19%,25%); stroke-linecap: round; stroke-width: 2;"/>
+			<path d="M 137.75,307.01 L 137.75,299.01 Z" style="stroke: rgb(12%,19%,25%); stroke-linecap: round; stroke-width: 1.3;"/>
+			<path d="M 248.75,307.01 L 248.75,299.01 Z" style="stroke: rgb(12%,19%,25%); stroke-linecap: round; stroke-width: 1.3;"/>
+			<text x="168.236328125" y="314.01" style="font-family: Arial; font-size: 18px;fill: rgb(12%,19%,25%); stroke:none;" transform="translate(0,628) scale(1,-1)">100 m</text>
+			<text x="110" y="190.90999999999997" style="font-family: Arial-Bold; font-size: 25px;fill: rgb(12%,19%,25%); stroke:none;" transform="translate(0,381) scale(1,-1)">(c)  High density  /  500 veh/km</text>
+			<text x="2076.865234375" y="190.90999999999997" style="font-family: Arial; font-size: 20px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,381) scale(1,-1)">ETSI #6   |   snapshot 56736</text>
+			<rect x="110" y="126.94999999999999" width="2220" height="13.319999999999993" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,95%,96%); fill-rule: evenodd;"/>
+			<path d="M 110,126.95 L 2330,126.95 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.8;"/>
+			<path d="M 110,140.27 L 2330,140.27 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.8;"/>
+			<path d="M 110,131.39 L 2330,131.39 Z" style="stroke: rgb(71%,76%,80%); stroke-linecap: round; stroke-width: 0.55; stroke-dasharray: 7, 7;"/>
+			<path d="M 110,135.83 L 2330,135.83 Z" style="stroke: rgb(71%,76%,80%); stroke-linecap: round; stroke-width: 0.55; stroke-dasharray: 7, 7;"/>
+			<rect x="110" y="146.93" width="2220" height="13.319999999999993" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(94%,95%,96%); fill-rule: evenodd;"/>
+			<path d="M 110,146.93 L 2330,146.93 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.8;"/>
+			<path d="M 110,160.25 L 2330,160.25 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.8;"/>
+			<path d="M 110,151.37 L 2330,151.37 Z" style="stroke: rgb(71%,76%,80%); stroke-linecap: round; stroke-width: 0.55; stroke-dasharray: 7, 7;"/>
+			<path d="M 110,155.81 L 2330,155.81 Z" style="stroke: rgb(71%,76%,80%); stroke-linecap: round; stroke-width: 0.55; stroke-dasharray: 7, 7;"/>
+			<path d="M 800.620281,153.077084 L 1216.689499,88.612916 Z" style="stroke: rgb(70%,47%,9%); stroke-linecap: round; stroke-width: 1.1; stroke-dasharray: 7, 6;"/>
+			<polygon points="1216.689 88.61292, 1212.573 91.43644, 1211.912 87.16738" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<path d="M 739.788744,148.730368 L 1216.676386,88.519632 Z" style="stroke: rgb(70%,47%,9%); stroke-linecap: round; stroke-width: 1.1; stroke-dasharray: 7, 6;"/>
+			<polygon points="1216.676 88.51963, 1212.482 91.2263, 1211.941 86.94033" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<path d="M 792.370731,128.852192 L 1216.665109,88.417808 Z" style="stroke: rgb(70%,47%,9%); stroke-linecap: round; stroke-width: 1.1; stroke-dasharray: 7, 6;"/>
+			<polygon points="1216.665 88.41781, 1212.39 90.99497, 1211.98 86.69446" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<path d="M 749.379092,133.2898 L 1216.665338,88.4202 Z" style="stroke: rgb(70%,47%,9%); stroke-linecap: round; stroke-width: 1.1; stroke-dasharray: 7, 6;"/>
+			<polygon points="1216.665 88.4202, 1212.392 91.00043, 1211.979 86.70021" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<path d="M 740.631001,157.123236 L 742.190469,154.496764 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 740.631001,157.123236 L 742.190469,154.496764 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="742.1905 154.4968, 741.9949 156.7066, 740.3439 155.7264" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 751.617586,152.147295 L 752.550294,155.032705 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 751.617586,152.147295 L 752.550294,155.032705 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="752.5503 155.0327, 751.0217 153.4249, 752.8486 152.8344" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 759.136529,152.125917 L 762.016571,150.614083 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 759.136529,152.125917 L 762.016571,150.614083 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="762.0166 150.6141, 760.6919 152.3937, 759.7995 150.6937" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 769.347028,154.519933 L 767.580282,157.100067 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 769.347028,154.519933 L 767.580282,157.100067 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="767.5803 157.1001, 767.9182 154.9075, 769.5024 155.9923" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 779.864955,154.919866 L 779.437735,152.260134 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 779.864955,154.919866 L 779.437735,152.260134 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="779.4377 152.2601, 780.7028 154.0826, 778.8071 154.3871" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 786.486502,152.245373 L 790.195458,150.494627 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 786.486502,152.245373 L 790.195458,150.494627 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="790.1955 150.4946, 788.7966 152.2165, 787.977 150.4802" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 804.501057,150.895392 L 796.404433,156.284608 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 804.501057,150.895392 L 796.404433,156.284608 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="796.4044 156.2846, 798.2172 153.2329, 799.9194 155.7902" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 810.166792,154.563856 L 808.030278,157.056144 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 810.166792,154.563856 L 808.030278,157.056144 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="808.0303 157.0561, 808.6031 154.9129, 810.0608 156.1625" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 747.840942,131.690151 L 744.961648,135.529849 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 747.840942,131.690151 L 744.961648,135.529849 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="744.9616 135.5298, 745.3969 133.3367, 746.945 134.4976" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 758.417782,134.531165 L 756.727998,137.128835 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 758.417782,134.531165 L 756.727998,137.128835 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="756.728 137.1288, 757.0138 134.9289, 758.6233 135.9758" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 764.668181,131.720727 L 767.406209,135.499273 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 764.668181,131.720727 L 767.406209,135.499273 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="767.4062 135.4993, 765.4553 134.4431, 767.01 133.3165" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 772.88762,132.631283 L 775.06421,130.148717 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 772.88762,132.631283 L 775.06421,130.148717 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="775.0642 130.1487, 774.4676 132.2854, 773.0239 131.0197" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 784.546641,134.516575 L 782.988919,137.143425 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 784.546641,134.516575 L 782.988919,137.143425 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="782.9889 137.1434, 783.1833 134.9335, 784.8348 135.9128" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 796.217628,137.153033 L 797.684872,134.506967 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 796.217628,137.153033 L 797.684872,134.506967 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="797.6849 134.507, 797.5546 136.7216, 795.8754 135.7905" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 807.128255,135.562905 L 804.092465,131.657095 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 807.128255,135.562905 L 804.092465,131.657095 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="804.0925 131.6571, 806.1549 132.6855, 804.5801 133.9096" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<path d="M 812.20334,132.627256 L 814.41308,130.152744 Z" style="stroke: rgb(100%,100%,100%); stroke-linecap: round; stroke-width: 3.3499999999999996;"/>
+			<path d="M 812.20334,132.627256 L 814.41308,130.152744 Z" style="stroke: rgb(13%,40%,62%); stroke-linecap: round; stroke-width: 1.05;"/>
+			<polygon points="814.4131 130.1527, 813.797 132.2839, 812.3649 131.0051" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="778.93817" cy="149.14999999999998" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="780.3645200000001" cy="158.02999999999997" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="769.9838" cy="153.58999999999992" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="783.63791" cy="153.58999999999992" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="766.9435100000001" cy="158.02999999999997" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="764.80565" cy="149.14999999999998" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="793.0440500000001" cy="149.14999999999998" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="793.7822" cy="158.02999999999997" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="756.3474500000001" cy="153.58999999999992" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<polygon points="797.3098 156.2925, 800.0123 153.59, 797.3098 150.8875, 794.6073 153.59" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.45; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<circle cx="753.5191700000001" cy="158.02999999999997" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="750.6487100000002" cy="149.14999999999998" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="807.12329" cy="149.14999999999998" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="807.1954400000001" cy="158.02999999999997" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="742.7288600000002" cy="153.58999999999992" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="811.0016300000001" cy="153.58999999999992" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="740.0926100000001" cy="158.02999999999997" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<polygon points="736.4651 151.8525, 739.1676 149.15, 736.4651 146.4475, 733.7626 149.15" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.45; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<circle cx="775.9223000000002" cy="129.16999999999996" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="772.02953" cy="133.61" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="782.4513200000001" cy="138.04999999999995" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="769.25453" cy="138.04999999999995" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="785.08424" cy="133.61" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<polygon points="789.0358 131.8725, 791.7383 129.17, 789.0358 126.4675, 786.3333 129.17" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.45; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<circle cx="762.8198600000001" cy="129.16999999999996" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="759.017" cy="133.61" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="795.7202600000002" cy="138.04999999999995" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="756.12878" cy="138.04999999999995" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="798.18224" cy="133.61" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="802.1593700000001" cy="129.16999999999996" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="749.7307400000001" cy="129.16999999999996" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<polygon points="746.0444 136.3125, 748.7469 133.61, 746.0444 130.9075, 743.3419 133.61" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.45; fill: rgb(70%,47%,9%); fill-rule: evenodd;"/>
+			<circle cx="743.07185" cy="138.04999999999995" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="809.0613500000002" cy="138.04999999999995" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="811.3257500000001" cy="133.61" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(13%,40%,62%); fill-rule: evenodd;"/>
+			<circle cx="815.29067" cy="129.16999999999996" r="2.35" style="stroke: rgb(13%,40%,62%); stroke-linecap: butt; stroke-width: 1.05; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<polygon points="1220 93.1, 1225 84.1, 1215 84.1" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(12%,19%,25%); fill-rule: evenodd;"/>
+			<text x="1233.0" y="81.09999999999991" style="font-family: Arial; font-size: 19px;fill: rgb(12%,19%,25%); stroke:none;" transform="translate(0,162) scale(1,-1)">BS</text>
+			<path d="M 110,68 L 2330,68 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<path d="M 110,68 L 110,63 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="86.9814453125" y="41.0" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,82) scale(1,-1)">-1000</text>
+			<path d="M 332,68 L 332,63 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="313.98681640625" y="41.0" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,82) scale(1,-1)">-800</text>
+			<path d="M 554,68 L 554,63 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="535.98681640625" y="41.0" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,82) scale(1,-1)">-600</text>
+			<path d="M 776,68 L 776,63 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="757.9868164062501" y="41.0" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,82) scale(1,-1)">-400</text>
+			<path d="M 998,68 L 998,63 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="979.9868164062501" y="41.0" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,82) scale(1,-1)">-200</text>
+			<path d="M 1220,68 L 1220,63 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="1214.99462890625" y="41.0" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,82) scale(1,-1)">0</text>
+			<path d="M 1442,68 L 1442,63 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="1426.9838867187502" y="41.0" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,82) scale(1,-1)">200</text>
+			<path d="M 1664,68 L 1664,63 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="1648.9838867187502" y="41.0" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,82) scale(1,-1)">400</text>
+			<path d="M 1886,68 L 1886,63 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="1870.9838867187502" y="41.0" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,82) scale(1,-1)">600</text>
+			<path d="M 2108,68 L 2108,63 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="2092.98388671875" y="41.0" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,82) scale(1,-1)">800</text>
+			<path d="M 2330,68 L 2330,63 Z" style="stroke: rgb(75%,80%,82%); stroke-linecap: round; stroke-width: 0.9;"/>
+			<text x="2309.978515625" y="41.0" style="font-family: Arial; font-size: 18px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,82) scale(1,-1)">1000</text>
+			<text x="2286.73974609375" y="17.0" style="font-family: Arial; font-size: 19px;fill: rgb(39%,45%,50%); stroke:none;" transform="translate(0,34) scale(1,-1)">x (m)</text>
+			<path d="M 137.75,88.1 L 248.75,88.1 Z" style="stroke: rgb(12%,19%,25%); stroke-linecap: round; stroke-width: 2;"/>
+			<path d="M 137.75,92.1 L 137.75,84.1 Z" style="stroke: rgb(12%,19%,25%); stroke-linecap: round; stroke-width: 1.3;"/>
+			<path d="M 248.75,92.1 L 248.75,84.1 Z" style="stroke: rgb(12%,19%,25%); stroke-linecap: round; stroke-width: 1.3;"/>
+			<text x="168.236328125" y="99.09999999999991" style="font-family: Arial; font-size: 18px;fill: rgb(12%,19%,25%); stroke:none;" transform="translate(0,198) scale(1,-1)">100 m</text>
+		</g>
+	</g>
+</svg>

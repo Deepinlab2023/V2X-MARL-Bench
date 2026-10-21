@@ -1,0 +1,149 @@
+{
+  "source": "/Users/swang66/Documents/GitHub/V2X-MARL-Bench/Environment/SUMOData/eval_sets/rep9_k4.csv",
+  "source_sha256": "05058b306079240e0633ef2e75e62843e622a3011464d809a5f3c733d60300ce",
+  "panels": [
+    {
+      "sid": 1237,
+      "scenario": "etsi1",
+      "letter": "a",
+      "name": "Low density",
+      "label": "ETSI #1",
+      "density": 35,
+      "xlim": [
+        -200,
+        200
+      ],
+      "bar": 100,
+      "band": "near",
+      "nodes": 12,
+      "v2v_pairs": 4,
+      "v2i_users": 4,
+      "links": [
+        {
+          "pair_id": 0,
+          "tx_node": 3,
+          "rx_node": 1,
+          "distance_m": 9.06611802261585,
+          "display_bend": false
+        },
+        {
+          "pair_id": 1,
+          "tx_node": 0,
+          "rx_node": 4,
+          "distance_m": 81.66479035667697,
+          "display_bend": false
+        },
+        {
+          "pair_id": 2,
+          "tx_node": 11,
+          "rx_node": 7,
+          "distance_m": 111.67990172363154,
+          "display_bend": false
+        },
+        {
+          "pair_id": 3,
+          "tx_node": 8,
+          "rx_node": 6,
+          "distance_m": 83.28312196357675,
+          "display_bend": false
+        }
+      ]
+    },
+    {
+      "sid": 19092,
+      "scenario": "etsi3",
+      "letter": "b",
+      "name": "Medium density",
+      "label": "ETSI #3",
+      "density": 123,
+      "xlim": [
+        -65,
+        65
+      ],
+      "bar": 20,
+      "band": "near",
+      "nodes": 12,
+      "v2v_pairs": 4,
+      "v2i_users": 4,
+      "links": [
+        {
+          "pair_id": 0,
+          "tx_node": 1,
+          "rx_node": 4,
+          "distance_m": 27.640058773454154,
+          "display_bend": true
+        },
+        {
+          "pair_id": 1,
+          "tx_node": 3,
+          "rx_node": 0,
+          "distance_m": 34.717,
+          "display_bend": false
+        },
+        {
+          "pair_id": 2,
+          "tx_node": 6,
+          "rx_node": 8,
+          "distance_m": 33.08963076252136,
+          "display_bend": false
+        },
+        {
+          "pair_id": 3,
+          "tx_node": 11,
+          "rx_node": 9,
+          "distance_m": 11.575104491968961,
+          "display_bend": false
+        }
+      ]
+    },
+    {
+      "sid": 29132,
+      "scenario": "etsi6",
+      "letter": "c",
+      "name": "High density",
+      "label": "ETSI #6",
+      "density": 500,
+      "xlim": [
+        -16,
+        16
+      ],
+      "bar": 5,
+      "band": "near",
+      "nodes": 12,
+      "v2v_pairs": 4,
+      "v2i_users": 4,
+      "links": [
+        {
+          "pair_id": 0,
+          "tx_node": 1,
+          "rx_node": 3,
+          "distance_m": 9.140792307015841,
+          "display_bend": false
+        },
+        {
+          "pair_id": 1,
+          "tx_node": 2,
+          "rx_node": 4,
+          "distance_m": 9.583119325146692,
+          "display_bend": false
+        },
+        {
+          "pair_id": 2,
+          "tx_node": 11,
+          "rx_node": 10,
+          "distance_m": 8.022468448052631,
+          "display_bend": true
+        },
+        {
+          "pair_id": 3,
+          "tx_node": 9,
+          "rx_node": 6,
+          "distance_m": 11.241709656453507,
+          "display_bend": false
+        }
+      ]
+    }
+  ],
+  "transform": "Original x and y are used for symbol centers; each panel has an independent linear x scale and common schematic y scale. No nodes or links omitted.",
+  "omissions": "BS and all V2I uplink / interference edges are omitted to show selected V2V topology only."
+}
