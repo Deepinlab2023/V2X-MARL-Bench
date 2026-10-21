@@ -4,5 +4,5 @@
     "mixer_lr": 1e-6,
     "batch_size": 64,
     "tau": 0.005,
-    "training_episodes": 3000
+    "training_episodes": 15000
 }

@@ -92,7 +92,7 @@ Each algorithm family has its own params file in `Configuration/`:
 - `ppo_params.py`: `training_episodes=100000`, PPO clip `eps=0.2`, GAE `lam=0.95`, `popart=True`
 - `qmix_params.py`: `training_episodes=30000`, separate `agent_lr` and `mixer_lr`
 
-Parameters are layered (later wins): class defaults → `Configuration/presets/{family}_{task}.json` (auto-loaded; family = `ppo` for IPPO and MAPPO, etc.) → `--config <json>` (sparse). Presets hold the baseline per-task configs; opt-in alternatives live in `Configuration/experimental/` (see its README).
+Parameters are layered (later wins): class defaults → `Configuration/presets/{family}_{task}.json` (auto-loaded; family = `ppo` for IPPO and MAPPO, etc.) → `--config <json>` (sparse). Presets hold the paper's per-task configs (Table V); the two exceptions (VDN on SIG ML, QMIX on 16-agent SIG SL) need a `--config` and are listed in `Configuration/presets/README.md`.
 
 PPO (IPPO and MAPPO) critic-scale convention, defined in `PPOHelper.critic_loss_fn` / `normalize_returns`: with `popart=True` the critic head is in normalized space and rollout values are denormalized before GAE; with `popart=False` the critic regresses raw returns with plain MSE. Optional update stabilization (`target_kl`, `lr_schedule`, `adam_eps`, `max_grad_norm`) is shared by both trainers via `PPOHelper` and off by default.
 

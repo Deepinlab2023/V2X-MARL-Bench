@@ -31,8 +31,8 @@ class PPOparameters:
         self.eps_clip = 0.2
         self.num_mini_batches = 4
         self.epochs = 10
-        # Update stabilization (IPPO and MAPPO). Defaults keep the original behaviour; see
-        # Configuration/experimental/ for a validated setting.
+        # Update stabilization (IPPO and MAPPO). Defaults keep the original behaviour; the SIG SL
+        # preset (Configuration/presets/ppo_SIG_SL.json) turns it on.
         # KL early stopping: before each actor step, if the minibatch's approx KL to the
         # rollout policy exceeds 1.5 * target_kl, skip that step and end the update. None = off.
         self.target_kl = None
